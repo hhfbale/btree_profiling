@@ -31,7 +31,6 @@ void insert_element(unsigned long key){
 struct data_element* find_element(unsigned long key){
 
 	struct data_element *result = btree_lookup(&tree, &btree_geo32, &key);
-	find_ds_monitoring(&thread_dm, current);
 
 	if (result){
 		printk("Found key %ld in B+ tree\n", key);
