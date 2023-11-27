@@ -1,5 +1,6 @@
 #include <linux/slab.h>
 #include <linux/printk.h>
+#include "btree_cache.h"
 
 typedef struct Node {
     int data;
