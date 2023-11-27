@@ -19,9 +19,6 @@
  * @get_idx:    (Needed)
  * 	@elem:  Pointer to any data structure that you want to watch.
  * 	Return: Value of index of which element should become.
- * @get_cpu_name:(Needed)
- *      @elem:  Pointer to any data structure that you want to watch.
- *      Return: Value of cpu name of which element should become.
  * @get_name:   (Optional)
  * 	@elem:  Pointer to any data structure that you want to watch.
  *	Return: Value of name with which element should be called.
@@ -33,9 +30,8 @@
  * */
 struct ds_monitoring_operations {
 	unsigned long (*get_index)(void *elem);
-	unsigned int (*get_cpu_name)(void *elem);
 	const char * (*get_name)(void *elem);
-	void (*print_elem)(unsigned long index, unsigned int cpu, const char *name, 
+	void (*print_elem)(unsigned long index, const char *name, 
 			unsigned long long count, int percentage);
 };
 
@@ -62,7 +58,6 @@ struct ds_monitoring_elem {
 	unsigned long key;
 	char *name;
 	unsigned long long count;
-	unsigned int cpu;
 };
 
 /**
@@ -73,10 +68,9 @@ struct ds_monitoring_elem {
  * @get_name_fn: A function address which determines name of each ds_monitoring_elem.
  * @print_fn:    A function address which prints out for each element.
  */
-#define DEFINE_DS_MONITORING_OPS(name, get_idx_fn, get_cpu_fn, get_name_fn, print_fn)	\
+#define DEFINE_DS_MONITORING_OPS(name, get_idx_fn, get_name_fn, print_fn)	\
 	static const struct ds_monitoring_operations name##_dm_ops = {		\
 		.get_index = get_idx_fn,					\
-		.get_cpu_name = get_cpu_fn,					\
 		.get_name = get_name_fn,					\
 		.print_elem = print_fn,						\
 	}
@@ -105,9 +99,9 @@ struct ds_monitoring_elem {
  * with the chosen name. It does the initialisation at compiletime instead of 
  * runtime.
  */
-#define DEFINE_DS_MONITORING(name, get_idx_fn, get_cpu_fn, get_name_fn, print_fn)		\
+#define DEFINE_DS_MONITORING(name, get_idx_fn, get_name_fn, print_fn)		\
 	DEFINE_XARRAY(name##_xarray);						\
-	DEFINE_DS_MONITORING_OPS(name, get_idx_fn, get_cpu_fn, get_name_fn, print_fn);	\
+	DEFINE_DS_MONITORING_OPS(name, get_idx_fn, get_name_fn, print_fn);	\
 	const char *dm_name = #name;						\
 	struct ds_monitoring name = DS_MONITORING_INIT(name##_xarray, name##_dm_ops);
 

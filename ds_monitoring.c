@@ -7,7 +7,6 @@
 #include "ds_monitoring.h"
 #include <linux/slab.h>
 #include <linux/string.h>
-#include <linux/sched.h>
 
 extern const char *dm_name;
 
@@ -23,7 +22,6 @@ insert_ds_monitoring(struct ds_monitoring *dm, unsigned long index, void *elem)
 	new = kmalloc(sizeof(struct ds_monitoring_elem), GFP_KERNEL);
 	new->key = index;
 	new->count = 1;
-	new->cpu = current->cpu;
 
 	if (dm->dm_ops->get_name) {
 		name = dm->dm_ops->get_name(elem);
@@ -71,7 +69,6 @@ void find_ds_monitoring(struct ds_monitoring *dm, void *elem)
 void print_ds_monitoring(struct ds_monitoring* dm)
 {
 	unsigned long cur_idx;
-	unsigned int cur_cpu;
 	void *cur;
 	char *cur_name;
 	unsigned long long cur_count;
@@ -84,9 +81,8 @@ void print_ds_monitoring(struct ds_monitoring* dm)
 	xa_for_each(dm->elements, cur_idx, cur) {
 		cur_name = ((struct ds_monitoring_elem *)cur)->name;
 		cur_count = ((struct ds_monitoring_elem *)cur)->count;
-		cur_cpu = ((struct ds_monitoring_elem *)cur)->cpu;
 		percentage = cur_count  * 100 / dm->total_counts;
-		dm->dm_ops->print_elem(cur_idx, cur_cpu, cur_name, cur_count, percentage);
+		dm->dm_ops->print_elem(cur_idx, cur_name, cur_count, percentage);
 	}
 }
 
