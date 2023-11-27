@@ -273,6 +273,7 @@ static void *btree_lookup_node(struct btree_head *head, struct btree_geo *geo,
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) <= 0)
 				break;
+    if (!bval(geo, node, i))
 */
 //binary search for btree, it just maked for to search one node's key
 int btree_bi_search(struct btree_head *node, struct btree_geo *geo,
@@ -281,8 +282,11 @@ int btree_bi_search(struct btree_head *node, struct btree_geo *geo,
 	int back = geo->no_pairs;
 	int front = 0;
 	while(back >= front){
-		mid = (front + back)/2
-		if (keycmp(geo, node, mid, key) == 0){
+		mid = (front + back)/2;
+		if (!bval(geo, node, mid)){
+			back = mid - 1;
+		}
+		else if (keycmp(geo, node, mid, key) == 0){
 			return mid;
 		}
 		else if(keycmp(geo, node, mid, key) < 0){
@@ -434,6 +438,7 @@ static int getpos(struct btree_geo *geo, unsigned long *node,
 	return i;
 }
 
+//find empty space
 static int getfill(struct btree_geo *geo, unsigned long *node, int start)
 {
 	int i;
