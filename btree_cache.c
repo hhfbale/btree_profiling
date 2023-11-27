@@ -1,6 +1,5 @@
 #include <linux/slab.h>
 #include <linux/printk.h>
-#include "btree_cache.h"
 
 typedef struct Node {
     int data;
@@ -8,48 +7,63 @@ typedef struct Node {
 } Node;
 
 typedef struct {
-    Node* nodes[4];
+    Node* head;
 } CircularQueue;
 
 void initQueue(CircularQueue* q) {
+    Node *current, *previous = NULL;
+    Node *first = NULL;
+
     for (int i = 0; i < 4; i++) {
-        q->nodes[i] = kmalloc(sizeof(Node), GFP_KERNEL);
-        if (!q->nodes[i]) {
+        current = kmalloc(sizeof(Node), GFP_KERNEL);
+        if (!current) {
             printk(KERN_ERR "Memory allocation failed for node %d\n", i);
+            current = first;
+            while (current) {
+                Node *temp = current->next;
+                kfree(current);
+                current = temp;
+            }
             return;
         }
-        q->nodes[i]->data = 0;  
+
+        current->data = 0;  
+        current->next = NULL;
+
+        if (i == 0) {
+            first = current;
+        } else {
+            previous->next = current;
+        }
+
+        previous = current;
     }
 
-    for (int i = 0; i < 3; i++) {
-        q->nodes[i]->next = q->nodes[i + 1];
-    }
-    q->nodes[3]->next = q->nodes[0]; 
+    current->next = first;
+    q->head = first;
 }
 
-
-void setNodeValue(CircularQueue* q, int index, int value) {
-    if (index < 0 || index > 3) {
-        printk(KERN_INFO "Index out of range\n");
-        return;
-    }
-    q->nodes[index]->data = value;
+void setNodeValue(CircularQueue* q, int value) {
+    Node* current = q->head;
+    current->data = value;
 }
 
-
-int getNodeValue(CircularQueue* q, int index) {
-    if (index < 0 || index > 3) {
-        printk(KERN_INFO "Index out of range\n");
-        return -1;
-    }
-    return q->nodes[index]->data;
+int getNodeValue(CircularQueue* q) {
+    Node* current = q->head;
+    return current->data;
 }
-
 
 void freeQueue(CircularQueue* q) {
-    for (int i = 0; i < 4; i++) {
-        if (q->nodes[i]) {
-            kfree(q->nodes[i]);
-        }
+    Node *current = q->head;
+
+    if (!current) {
+        return;
     }
+
+    Node *first = current;
+    do {
+        Node *temp = current;
+        current = current->next;
+        kfree(temp);
+    } while (current != first);
 }
