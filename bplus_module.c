@@ -5,7 +5,7 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/cache.h>
-
+/*
 // Declare the B+ tree
 // declared in btree.h
 //struct btree_head tree;
@@ -74,7 +74,7 @@ MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastr
 
 module_init(bplus_module_init);
 module_exit(bplus_module_exit);
-
+*/
 
 //////////////////////////////////////////////////////////////////
 //								//
@@ -257,6 +257,43 @@ static int keycmp(struct btree_geo *geo, unsigned long *node, int pos,
 		  unsigned long *key)
 {
 	return longcmp(bkey(geo, node, pos), key, geo->keylen);
+}
+
+/*
+static void *btree_lookup_node(struct btree_head *head, struct btree_geo *geo,
+		unsigned long *key)
+{
+	int i, height = head->height;
+	unsigned long *node = head->node;
+
+	if (height == 0)
+		return NULL;
+
+	for ( ; height > 1; height--) {
+		for (i = 0; i < geo->no_pairs; i++)
+			if (keycmp(geo, node, i, key) <= 0)
+				break;
+*/
+//binary search for btree, it just maked for to search one node's key
+int btree_bi_search(struct btree_head *node, struct btree_geo *geo,
+		unsigned long *key){
+	int mid = 0;
+	int back = geo->no_pairs;
+	int front = 0;
+	while(back >= front){
+		mid = (front + back)/2
+		if (keycmp(geo, node, mid, key) == 0){
+			return mid;
+		}
+		else if(keycmp(geo, node, mid, key) < 0){
+			front = mid + 1;
+		}
+		else{
+			back = mid - 1;
+		}
+	}
+	return front;
+
 }
 
 static int keyzero(struct btree_geo *geo, unsigned long *key)
