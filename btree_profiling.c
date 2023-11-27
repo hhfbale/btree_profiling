@@ -5,12 +5,14 @@
 #include <linux/pid.h>
 #include "calclock.h"
 
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Herman Bale");
 MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastructure in the Linux source code");
 
 // Declare the B+ tree
 struct btree_head tree;
+unsigned long tree_size = 50;
 
 // Fetch tree geometry
 extern struct btree_geo btree_geo32;
@@ -36,6 +38,15 @@ void insert_element(unsigned long key){
 	printk("Inserted key %ld in B+ tree\n", key);
 }
 
+void fill_tree(void){
+
+	unsigned long i;
+	for (i = 1; i <= tree_size; i++)
+	{
+		insert_element(i);
+	}	
+}
+
 struct data_element* find_element(unsigned long key){
 
 	ktime_t localclock[2];
@@ -55,19 +66,29 @@ struct data_element* find_element(unsigned long key){
 	return result;
 }
 
+void find_tree(void){
+
+	unsigned long i;
+	for (i = 1; i <= tree_size; i++)
+	{
+		find_element(i);
+	}
+	
+}
+
 static int __init bplus_module_init(void){
 	printk("Initializing bplus_module\n");
 	
 	create_tree();
-	insert_element(1);
+	fill_tree();
+	
 	return 0;
 }
 
 static void __exit bplus_module_exit(void){
 	printk("Exiting bplus_module\n");
-
-	find_element(1);
-
+	
+	find_tree();
 	ktprint(2, btree_lookup_iter);
 	btree_destroy(&tree);
 }
