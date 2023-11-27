@@ -5,6 +5,8 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/cache.h>
+#include "btree_cache.h"
+
 /*
 // Declare the B+ tree
 // declared in btree.h
@@ -660,6 +662,7 @@ static void *btree_remove_level(struct btree_head *head, struct btree_geo *geo,
 	unsigned long *node;
 	int i, pos, fill;
 	void *ret;
+	void *cache_ptr; // cache pointer
 
 	if (level > head->height) {
 		/* we recursed all the way up */
@@ -674,7 +677,11 @@ static void *btree_remove_level(struct btree_head *head, struct btree_geo *geo,
 	if ((level == 1) && (keycmp(geo, node, pos, key) != 0))
 		return NULL;
 	ret = bval(geo, node, pos);
+	
+	cache_ptr = bval(geo, node, geo->keylen * geo->no_pairs + geo->no_longs );
+	//memory free
 
+	
 	/* remove and shift */
 	for (i = pos; i < fill - 1; i++) {
 		setkey(geo, node, i, bkey(geo, node, i + 1));
