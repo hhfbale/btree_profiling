@@ -261,22 +261,6 @@ static int keycmp(struct btree_geo *geo, unsigned long *node, int pos,
 	return longcmp(bkey(geo, node, pos), key, geo->keylen);
 }
 
-/*
-static void *btree_lookup_node(struct btree_head *head, struct btree_geo *geo,
-		unsigned long *key)
-{
-	int i, height = head->height;
-	unsigned long *node = head->node;
-
-	if (height == 0)
-		return NULL;
-
-	for ( ; height > 1; height--) {
-		for (i = 0; i < geo->no_pairs; i++)
-			if (keycmp(geo, node, i, key) <= 0)
-				break;
-    if (!bval(geo, node, i))
-*/
 //binary search for btree, it just maked for to search one node's key
 int btree_bi_search(struct btree_head *node, struct btree_geo *geo,
 		unsigned long *key){
@@ -318,11 +302,16 @@ static void *btree_lookup_node(struct btree_head *head, struct btree_geo *geo,
 {
 	int i, height = head->height;
 	unsigned long *node = head->node;
+	unsigned long *temp_n = NULL;
 
 	if (height == 0)
 		return NULL;
 
 	for ( ; height > 1; height--) {
+		for(int j ; j < 4;j++ ){
+			temp_n = getNodeValue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs]);
+		}
+		if()
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) <= 0)
 				break;
@@ -678,15 +667,19 @@ static void *btree_remove_level(struct btree_head *head, struct btree_geo *geo,
 		return NULL;
 	ret = bval(geo, node, pos);
 	
-	cache_ptr = bval(geo, node, geo->keylen * geo->no_pairs + geo->no_longs );
-	//memory free
-
-	
 	/* remove and shift */
 	for (i = pos; i < fill - 1; i++) {
 		setkey(geo, node, i, bkey(geo, node, i + 1));
 		setval(geo, node, i, bval(geo, node, i + 1));
 	}
+
+	
+	//////////////////////////
+	cache_ptr = bval(geo, node, fill - 1);
+	freeQueue(cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs]);
+	//////////////////////////cache memory free
+
+	
 	clearpair(geo, node, fill - 1);
 
 	if (fill - 1 < geo->no_pairs / 2) {
