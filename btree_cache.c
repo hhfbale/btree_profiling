@@ -4,6 +4,7 @@
 
 typedef struct Node {
     unsigned long *node;
+    unsigned long *key;
     struct Node* next;
 } Node;
 
@@ -30,6 +31,7 @@ void initQueue(CircularQueue* q) {
 
         current->node = NULL;  
         current->next = NULL;
+        current->key = current = kmalloc(sizeof(unsigned long)*2, GFP_KERNEL);
 
         if (i == 0) {
             first = current;
@@ -49,7 +51,20 @@ void setNodeValue(CircularQueue* q, unsigned long * value) {
     current->node = value;
 }
 
+//change node key
+void setNodekey(CircularQueue* q, unsigned long * key, unsigned long * c_key, int arr_len) {
+    for(int i = 0;i++ ;i <arr_len){
+        key[i] = c_key[i];
+    }
+    current->node = value;
+}
+
 void* getNodeValue(CircularQueue* q) {
+    Node* current = q->head;
+    return current->node;
+}
+
+void* findNodeValue(CircularQueue* q, unsinged long long key) {
     Node* current = q->head;
     return current->node;
 }
