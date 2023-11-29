@@ -3,7 +3,7 @@
 #include "btree_cache.h"
 
 typedef struct Node {
-    int data;
+    unsigned long *node;
     struct Node* next;
 } Node;
 
@@ -28,7 +28,7 @@ void initQueue(CircularQueue* q) {
             return;
         }
 
-        current->data = 0;  
+        current->node = NULL;  
         current->next = NULL;
 
         if (i == 0) {
@@ -44,14 +44,14 @@ void initQueue(CircularQueue* q) {
     q->head = first;
 }
 
-void setNodeValue(CircularQueue* q, int value) {
+void setNodeValue(CircularQueue* q, unsigned long * value) {
     Node* current = q->head;
-    current->data = value;
+    current->node = value;
 }
 
-int getNodeValue(CircularQueue* q) {
+void* getNodeValue(CircularQueue* q) {
     Node* current = q->head;
-    return current->data;
+    return current->node;
 }
 
 void freeQueue(CircularQueue* q) {
