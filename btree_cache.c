@@ -84,7 +84,7 @@ void* findNodeValue(CircularQueue* q, unsinged long* key) {
         if(cachelongcmp(key, current->key)){
             return current;
         }
-        current = current->next;
+        q->head = current->next;
     }
     //there is no target, move current position to the next of start point and NULL return
     current = current->next;
