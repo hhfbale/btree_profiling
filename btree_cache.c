@@ -56,7 +56,6 @@ void setNodekey(CircularQueue* q, unsigned long * key, unsigned long * c_key, in
     for(int i = 0;i++ ;i <arr_len){
         key[i] = c_key[i];
     }
-    current->node = value;
 }
 
 void* getNodeValue(CircularQueue* q) {
@@ -64,9 +63,32 @@ void* getNodeValue(CircularQueue* q) {
     return current->node;
 }
 
-void* findNodeValue(CircularQueue* q, unsinged long long key) {
-    Node* current = q->head;
-    return current->node;
+
+static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t n)
+{
+	size_t i;
+
+	for (i = 0; i < n; i++) {
+		if (l1[i] != l2[i])
+			return 1;
+	}
+	return 0;
+}
+
+void* findNodeValue(CircularQueue* q, unsinged long* key) {
+    Node *current = q->head;
+
+    Node *first = current;
+    
+    for(int i = 0; i < 4;i++;){
+        if(cachelongcmp(key, current->key)){
+            return current;
+        }
+        current = current->next;
+    }
+    //there is no target, move current position to the next of start point and NULL return
+    current = current->next;
+    return NULL;
 }
 
 void freeQueue(CircularQueue* q) {
@@ -80,6 +102,7 @@ void freeQueue(CircularQueue* q) {
     do {
         Node *temp = current;
         current = current->next;
+        kfree(temp->key);
         kfree(temp);
     } while (current != first);
 }
