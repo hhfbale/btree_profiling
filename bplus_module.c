@@ -86,7 +86,9 @@ module_exit(bplus_module_exit);
 
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define NODESIZE MAX(L1_CACHE_BYTES + 1 , 128 + 1)
+#define CACHE_LENTH 3   // 1 for cache queue 1 for count 1 for to check is it deleted
+#define NODESIZE MAX(L1_CACHE_BYTES + CACHE_LENTH , 128 + CACHE_LENTH)
+#define CACHE_START geo->keylen * geo->no_pairs + geo->no_longs
 
 struct btree_geo {
 	int keylen;
@@ -96,21 +98,21 @@ struct btree_geo {
 
 struct btree_geo btree_geo32 = {
 	.keylen = 1,
-	.no_pairs = (NODESIZE - 1) / sizeof(long) / 2,
-	.no_longs = (NODESIZE - 1) / sizeof(long) / 2,
+	.no_pairs = (NODESIZE - CACHE_LENTH) / sizeof(long) / 2,
+	.no_longs = (NODESIZE - CACHE_LENTH) / sizeof(long) / 2,
 };
 
 #define LONG_PER_U64 (64 / BITS_PER_LONG)
 struct btree_geo btree_geo64 = {
 	.keylen = LONG_PER_U64,
-	.no_pairs = (NODESIZE - 1) / sizeof(long) / (1 + LONG_PER_U64),
-	.no_longs = LONG_PER_U64 * ((NODESIZE - 1) / sizeof(long) / (1 + LONG_PER_U64)),
+	.no_pairs = (NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + LONG_PER_U64),
+	.no_longs = LONG_PER_U64 * ((NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + LONG_PER_U64)),
 };
 
 struct btree_geo btree_geo128 = {
 	.keylen = 2 * LONG_PER_U64,
-	.no_pairs = (NODESIZE - 1) / sizeof(long) / (1 + 2 * LONG_PER_U64),
-	.no_longs = 2 * LONG_PER_U64 * ((NODESIZE - 1) / sizeof(long) / (1 + 2 * LONG_PER_U64)),
+	.no_pairs = (NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + 2 * LONG_PER_U64),
+	.no_longs = 2 * LONG_PER_U64 * ((NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + 2 * LONG_PER_U64)),
 };
 
 #define MAX_KEYLEN	(2 * LONG_PER_U64)
@@ -297,30 +299,52 @@ static int keyzero(struct btree_geo *geo, unsigned long *key)
 	return 1;
 }
 
-static void *btree_lookup_node(struct btree_head *head, struct btree_geo *geo,
+static void *btree_lookup_node(struct btree_head *head, unsigned long * h_node, struct btree_geo *geo,
 		unsigned long *key)
 {
 	int i, height = head->height;
-	unsigned long *node = head->node;
+	unsigned long *node = h_node;
 	unsigned long *temp_n = NULL;
 
 	if (height == 0)
 		return NULL;
-
+	
+	///changed code to recersive funtion
+	for(int j ; j < 4;j++ ){
+			temp_n = findNode((CircularQueue*)node[CACHE_START], key, head);
+	}
+	if(temp_n != NULL)
+		return temp_n;
+	for (i = 0; i < geo->no_pairs; i++)
+		if (keycmp(geo, node, i, key) <= 0)
+			break;
+	if (i == geo->no_pairs)
+		return NULL;
+	node = bval(geo, node, i);
+	if (!node)
+		return NULL;
+	node = btree_lookup_node(node, geo, key);
+	if(node != NULL)
+		setcache((CircularQueue*)node[CACHE_START], head, node, key, CACHE_START, keylen);
+	
+	/*
 	for ( ; height > 1; height--) {
 		for(int j ; j < 4;j++ ){
-			temp_n = getNodeValue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs]);
+			temp_n = getNodeValue((CircularQueue*)node[CACHE_START], key, head);
 		}
-		if()
+		if(temp_n != NULL)
+			return temp_n;
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) <= 0)
 				break;
 		if (i == geo->no_pairs)
 			return NULL;
+		setcache((CircularQueue*)node[CACHE_START], head, unsigned long * node, unsigned long * key, unsigned long * c_key, int arr_len, int key_len)
 		node = bval(geo, node, i);
 		if (!node)
 			return NULL;
 	}
+ 	*/
 	return node;
 }
 
@@ -329,8 +353,9 @@ void *btree_lookup(struct btree_head *head, struct btree_geo *geo,
 {
 	int i;
 	unsigned long *node;
-
-	node = btree_lookup_node(head, geo, key);
+	
+	node = head->node;
+	node = btree_lookup_node(head, node, geo, key);
 	if (!node)
 		return NULL;
 
@@ -416,7 +441,7 @@ miss:
 	}
 	return NULL;
 }
-
+//find 
 static int getpos(struct btree_geo *geo, unsigned long *node,
 		unsigned long *key)
 {
@@ -500,6 +525,7 @@ static void btree_shrink(struct btree_head *head, struct btree_geo *geo)
 	BUG_ON(fill > 1);
 	head->node = bval(geo, node, 0);
 	head->height--;
+	freeQueue((CircularQueue*)node[CACHE_START], head, CACHE_START);
 	mempool_free(node, head->mempool);
 }
 
@@ -580,7 +606,9 @@ static void merge(struct btree_head *head, struct btree_geo *geo, int level,
 		unsigned long *parent, int lpos)
 {
 	int i;
+	unsinged long *cache_ptr; 									// cache pointer
 
+	
 	for (i = 0; i < rfill; i++) {
 		/* Move all keys to the left */
 		setkey(geo, left, lfill + i, bkey(geo, right, i));
@@ -591,7 +619,17 @@ static void merge(struct btree_head *head, struct btree_geo *geo, int level,
 	setval(geo, parent, lpos + 1, left);
 	/* Remove left (formerly right) child from parent */
 	btree_remove_level(head, geo, bkey(geo, parent, lpos), level + 1);
-	mempool_free(right, head->mempool);
+	
+	////////////////////////// added code to free cache memory
+	////////////////////////// in this if statement allocated node really deleted
+	cache_ptr = right;
+	freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
+	//////////////////////////cache memory free
+
+
+	cache_ptr[CACHE_START + 2] = 1;
+	//not free node, just chang cache state
+	//mempool_free(right, head->mempool);    //this is original code
 }
 
 static void rebalance(struct btree_head *head, struct btree_geo *geo,
@@ -599,6 +637,7 @@ static void rebalance(struct btree_head *head, struct btree_geo *geo,
 {
 	unsigned long *parent, *left = NULL, *right = NULL;
 	int i, no_left, no_right;
+	unsinged long *cache_ptr; 									// cache pointer
 
 	if (fill == 0) {
 		/* Because we don't steal entries from a neighbour, this case
@@ -606,7 +645,16 @@ static void rebalance(struct btree_head *head, struct btree_geo *geo,
 		 * node, so merging with a sibling never happens.
 		 */
 		btree_remove_level(head, geo, key, level + 1);
-		mempool_free(child, head->mempool);
+
+		////////////////////////// added code to free cache memory
+		////////////////////////// in this if statement allocated node really deleted
+		cache_ptr = child;
+		freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
+		//////////////////////////cache memory free
+
+		cache_ptr[CACHE_START + 2] = 1;
+		//not free node, just chang cache state
+		//mempool_free(right, head->mempool);    //this is original code
 		return;
 	}
 
@@ -651,7 +699,6 @@ static void *btree_remove_level(struct btree_head *head, struct btree_geo *geo,
 	unsigned long *node;
 	int i, pos, fill;
 	void *ret;
-	void *cache_ptr; // cache pointer
 
 	if (level > head->height) {
 		/* we recursed all the way up */
@@ -672,13 +719,6 @@ static void *btree_remove_level(struct btree_head *head, struct btree_geo *geo,
 		setkey(geo, node, i, bkey(geo, node, i + 1));
 		setval(geo, node, i, bval(geo, node, i + 1));
 	}
-
-	
-	//////////////////////////
-	cache_ptr = bval(geo, node, fill - 1);
-	freeQueue(cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs]);
-	//////////////////////////cache memory free
-
 	
 	clearpair(geo, node, fill - 1);
 
@@ -758,8 +798,10 @@ static size_t __btree_for_each(struct btree_head *head, struct btree_geo *geo,
 			func(child, opaque, bkey(geo, node, i), count++,
 					func2);
 	}
-	if (reap)
+	if (reap){
+		freeQueue((CircularQueue*)node[CACHE_START], head, CACHE_START);
 		mempool_free(node, head->mempool);
+	}
 	return count;
 }
 
