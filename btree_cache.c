@@ -1,15 +1,10 @@
 #include <linux/slab.h>
 #include <linux/printk.h>
+#include <linux/btree.h>
 #include "btree_cache.h"
 
-typedef struct BTREE_Node {
-    unsigned long *node;
-    int deleted;
-    int count;
-} BTREE_Node;
-
 typedef struct Node {
-    struct BTREE_Node *node;
+    unsigned long *node;
     unsigned long *key;
     struct Node* next;
 } Node;
@@ -21,7 +16,6 @@ typedef struct {
 void initQueue(CircularQueue* q) {
     Node *current, *previous = NULL;
     Node *first = NULL;
-    BTREE_Node *temp_btree = NULL; 
 
     for (int i = 0; i < 4; i++) {
         current = kmalloc(sizeof(Node), GFP_KERNEL);
@@ -39,17 +33,7 @@ void initQueue(CircularQueue* q) {
         current->node = NULL;  
         current->next = NULL;
         current->key = current = kmalloc(sizeof(unsigned long)*2, GFP_KERNEL);
-
-        temp_btree = NULL;
-        temp_btree = kmalloc(sizeof(BTREE_Node), GFP_KERNEL);
-        if (!temp_btree) {
-            printk(KERN_ERR "Memory allocation failed for node %d\n", i);
-            kfree(temp_btree);
-            return;
-        }
-        temp_btree->node = NULL;
-        temp_btree->count = 0;
-        temp_btree->deleted = 0;
+		
 
         if (i == 0) {
             first = current;
@@ -64,24 +48,31 @@ void initQueue(CircularQueue* q) {
     q->head = first;
 }
 
-void setcache(CircularQueue* q, unsigned long * node, unsigned long * key, unsigned long * c_key, int arr_len, int key_len) {
+void setcache(CircularQueue* q,struct btree_head *head, unsigned long * node, unsigned long * key, unsigned long * c_key, int arr_len, int key_len) {
 	Node* current = q->head;
 	if(current != NULL){
-		if(current->node[arr_len + 1] ==
-		current->node[arr_len
+		if(current->node[arr_len + 1] == 1 && current->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
+			mempool_free(current->node, head->mempool);
+		}
+		else{
+			current->node[arr_len + 1] -= 1;
+		}
 	}
 	current->node = node;
+	current->node[arr_len + 1] += 1;
 	for(int i = 0;i++ ;i <key_len){
         key[i] = c_key[i];
     }
 }
 
 //change node key
+/*
 void setNodekey(CircularQueue* q, unsigned long * key, unsigned long * c_key, int arr_len) {
     for(int i = 0;i++ ;i <arr_len){
         key[i] = c_key[i];
     }
 }
+*/
 
 void* getNodeValue(CircularQueue* q) {
     Node* current = q->head;
@@ -116,7 +107,7 @@ void* findNodeValue(CircularQueue* q, unsinged long* key) {
     return NULL;
 }
 
-void freeQueue(CircularQueue* q) {
+void freeQueue(CircularQueue* q,struct btree_head *head, int arr_len) { //arr_len is the length of orignal node
     Node *current = q->head;
 
     if (!current) {
@@ -127,6 +118,14 @@ void freeQueue(CircularQueue* q) {
     do {
         Node *temp = current;
         current = current->next;
+		if(current != NULL){
+			if(current->node[arr_len + 1] == 1 && current->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
+				mempool_free(current->node, head->mempool);
+			}
+			else{
+				current->node[arr_len + 1] -= 1;
+			}
+		}
         kfree(temp->key);
         kfree(temp);
     } while (current != first);
