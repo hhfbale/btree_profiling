@@ -86,7 +86,7 @@ module_exit(bplus_module_exit);
 
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define NODESIZE MAX(L1_CACHE_BYTES, 128)
+#define NODESIZE MAX(L1_CACHE_BYTES + 1 , 128 + 1)
 
 struct btree_geo {
 	int keylen;
@@ -96,21 +96,21 @@ struct btree_geo {
 
 struct btree_geo btree_geo32 = {
 	.keylen = 1,
-	.no_pairs = NODESIZE / sizeof(long) / 2,
-	.no_longs = NODESIZE / sizeof(long) / 2,
+	.no_pairs = (NODESIZE - 1) / sizeof(long) / 2,
+	.no_longs = (NODESIZE - 1) / sizeof(long) / 2,
 };
 
 #define LONG_PER_U64 (64 / BITS_PER_LONG)
 struct btree_geo btree_geo64 = {
 	.keylen = LONG_PER_U64,
-	.no_pairs = NODESIZE / sizeof(long) / (1 + LONG_PER_U64),
-	.no_longs = LONG_PER_U64 * (NODESIZE / sizeof(long) / (1 + LONG_PER_U64)),
+	.no_pairs = (NODESIZE - 1) / sizeof(long) / (1 + LONG_PER_U64),
+	.no_longs = LONG_PER_U64 * ((NODESIZE - 1) / sizeof(long) / (1 + LONG_PER_U64)),
 };
 
 struct btree_geo btree_geo128 = {
 	.keylen = 2 * LONG_PER_U64,
-	.no_pairs = NODESIZE / sizeof(long) / (1 + 2 * LONG_PER_U64),
-	.no_longs = 2 * LONG_PER_U64 * (NODESIZE / sizeof(long) / (1 + 2 * LONG_PER_U64)),
+	.no_pairs = (NODESIZE - 1) / sizeof(long) / (1 + 2 * LONG_PER_U64),
+	.no_longs = 2 * LONG_PER_U64 * ((NODESIZE - 1) / sizeof(long) / (1 + 2 * LONG_PER_U64)),
 };
 
 #define MAX_KEYLEN	(2 * LONG_PER_U64)
