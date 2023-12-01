@@ -2,8 +2,14 @@
 #include <linux/printk.h>
 #include "btree_cache.h"
 
-typedef struct Node {
+typedef struct BTREE_Node {
     unsigned long *node;
+    int deleted;
+    int count;
+} BTREE_Node;
+
+typedef struct Node {
+    struct BTREE_Node *node;
     unsigned long *key;
     struct Node* next;
 } Node;
@@ -15,6 +21,7 @@ typedef struct {
 void initQueue(CircularQueue* q) {
     Node *current, *previous = NULL;
     Node *first = NULL;
+    BTREE_Node *temp_btree = NULL; 
 
     for (int i = 0; i < 4; i++) {
         current = kmalloc(sizeof(Node), GFP_KERNEL);
@@ -33,6 +40,17 @@ void initQueue(CircularQueue* q) {
         current->next = NULL;
         current->key = current = kmalloc(sizeof(unsigned long)*2, GFP_KERNEL);
 
+        temp_btree = NULL;
+        temp_btree = kmalloc(sizeof(BTREE_Node), GFP_KERNEL);
+        if (!temp_btree) {
+            printk(KERN_ERR "Memory allocation failed for node %d\n", i);
+            kfree(temp_btree);
+            return;
+        }
+        temp_btree->node = NULL;
+        temp_btree->count = 0;
+        temp_btree->deleted = 0;
+
         if (i == 0) {
             first = current;
         } else {
@@ -46,9 +64,16 @@ void initQueue(CircularQueue* q) {
     q->head = first;
 }
 
-void setNodeValue(CircularQueue* q, unsigned long * value) {
-    Node* current = q->head;
-    current->node = value;
+void setcache(CircularQueue* q, unsigned long * node, unsigned long * key, unsigned long * c_key, int arr_len, int key_len) {
+	Node* current = q->head;
+	if(current != NULL){
+		if(current->node[arr_len + 1] ==
+		current->node[arr_len
+	}
+	current->node = node;
+	for(int i = 0;i++ ;i <key_len){
+        key[i] = c_key[i];
+    }
 }
 
 //change node key
@@ -82,7 +107,7 @@ void* findNodeValue(CircularQueue* q, unsinged long* key) {
     
     for(int i = 0; i < 4;i++;){
         if(cachelongcmp(key, current->key)){
-            return current;
+            return current->node;
         }
         q->head = current->next;
     }
