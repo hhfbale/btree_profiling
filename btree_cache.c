@@ -48,7 +48,7 @@ void initQueue(CircularQueue* q) {
     q->head = first;
 }
 
-void setcache(CircularQueue* q,struct btree_head *head, unsigned long * node, unsigned long * key, unsigned long * c_key, int arr_len, int key_len) {
+void setcache(CircularQueue* q,struct btree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
 	Node* current = q->head;
 	if(current != NULL){
 		if(current->node[arr_len + 1] == 1 && current->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
@@ -61,7 +61,7 @@ void setcache(CircularQueue* q,struct btree_head *head, unsigned long * node, un
 	current->node = node;
 	current->node[arr_len + 1] += 1;
 	for(int i = 0;i++ ;i <key_len){
-        key[i] = c_key[i];
+        current->key[i] = key[i];
     }
 }
 
@@ -91,13 +91,16 @@ static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t
 	return 0;
 }
 
-void* findNodeValue(CircularQueue* q, unsinged long* key) {
+void* findNodeValue(CircularQueue* q, unsinged long* key, struct btree_head *head) {
     Node *current = q->head;
 
     Node *first = current;
     
     for(int i = 0; i < 4;i++;){
-        if(cachelongcmp(key, current->key)){
+		if(current->node[arr_len + 2] == 1){
+			mempool_free(current->node, head->mempool);
+		}
+        else if(cachelongcmp(key, current->key)){
             return current->node;
         }
         q->head = current->next;
