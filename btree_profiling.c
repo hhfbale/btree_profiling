@@ -133,21 +133,21 @@ static int __init bplus_module_init(void){
 
 static void __exit bplus_module_exit(void){
 
-	printk("Exiting bplus_module\n");
-
 	kmem_cache_destroy(cbtree_cachep);
+
+	printk("Exiting bplus_module\n");
 	
-	find_tree();
+	// find_tree();
 	
-	unsigned long i;
-	for (i = 0; i < TREE_SIZE; i++){
-		if (search_counts[i]){
-        	printk("Search count for key %lu: %lu\n", i, search_counts[i]);
-		}
-    }
+	// unsigned long i;
+	// for (i = 0; i < TREE_SIZE; i++){
+	// 	if (search_counts[i]){
+    //     	printk("Search count for key %lu: %lu\n", i, search_counts[i]);
+	// 	}
+    // }
 	
-	ktprint(2, cbtree_lookup_iter);
-	cbtree_destroy(&tree);
+	// ktprint(2, cbtree_lookup_iter);
+	// cbtree_destroy(&tree);
 }
 
 module_init(bplus_module_init);
