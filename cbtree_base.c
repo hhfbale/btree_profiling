@@ -279,7 +279,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	
 	///changed code to recersive funtion
 	for(int j ; j < 4;j++ ){
-			temp_n = findNode((CircularQueue*)node[CACHE_START], key, head);
+			temp_n = findNode((CircularQueue*)node[CACHE_START], key, head, CACHE_START);
 	}
 	if(temp_n != NULL)
 		return temp_n;
