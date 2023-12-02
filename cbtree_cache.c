@@ -22,7 +22,8 @@ void initQueue(CircularQueue* q) {
 
         curr->node = NULL;  
         curr->next = NULL;
-        curr->key = curr = kmalloc(sizeof(unsigned long)*2, GFP_KERNEL);
+	curr = kmalloc(sizeof(unsigned long)*2, GFP_KERNEL);
+        curr->key = curr;
 		
 
         if (i == 0) {
