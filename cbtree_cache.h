@@ -14,14 +14,14 @@ typedef struct {
 */
 void initQueue(CircularQueue* q);
 
-void setcache(CircularQueue* q,struct btree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len);
+void setcache(CircularQueue* q,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len);
 
 void* getNodeValue(CircularQueue* q);
 
 static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t n);
 
-void* findNode(CircularQueue* q, unsinged long* key, struct btree_head *head);
+void* findNode(CircularQueue* q, unsinged long* key, struct cbtree_head *head);
 
-void freeQueue(CircularQueue* q,struct btree_head *head, int arr_len);
+void freeQueue(CircularQueue* q,struct cbtree_head *head, int arr_len);
 
 #endif
