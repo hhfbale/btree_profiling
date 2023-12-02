@@ -84,7 +84,7 @@ static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t
 	return 0;
 }
 
-void* findNode(CircularQueue* q, unsigned long* key, struct cbtree_head *head) {
+void* findNode(CircularQueue* q, unsigned long* key, struct cbtree_head *head, int arr_len) {
     Node *curr = q->head;
 
     Node *first = curr;
