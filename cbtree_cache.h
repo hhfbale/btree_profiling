@@ -20,6 +20,6 @@ void* getNodeValue(CircularQueue* q);
 
 static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t n);
 
-void* findNode(CircularQueue* q, unsigned long* key, struct cbtree_head *head);
+void* findNode(CircularQueue* q, unsigned long* key, struct cbtree_head *head, int arr_len);
 
 void freeQueue(CircularQueue* q,struct cbtree_head *head, int arr_len);
