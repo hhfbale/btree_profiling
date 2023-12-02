@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * lib/btree.c	- Simple In-memory B+Tree
+ * lib/cbtree.c	- Simple In-memory B+Tree
  *
  * Copyright (c) 2007-2008 Joern Engel <joern@purestorage.com>
  * Bits and pieces stolen from Peter Zijlstra's code, which is
  * Copyright 2007, Red Hat Inc. Peter Zijlstra
  *
- * see http://programming.kicks-ass.net/kernel-patches/vma_lookup/btree.patch
+ * see http://programming.kicks-ass.net/kernel-patches/vma_lookup/cbtree.patch
  *
  * A relatively simple B+Tree implementation.  I have written it as a learning
  * exercise to understand how B+Trees work.  Turned out to be useful as well.
@@ -37,23 +37,22 @@
  * simply loop once over all slots and terminate on the first NUL.
  */
 
-#include <linux/btree.h>
+#include "cbtree_base.h"
 #include <linux/cache.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/module.h>
-#include "cbtree.h"
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define NODESIZE MAX(L1_CACHE_BYTES, 128)
+// #define MAX(a, b) ((a) > (b) ? (a) : (b))
+// #define NODESIZE MAX(L1_CACHE_BYTES, 128)
 
-struct btree_geo {
+struct cbtree_geo {
 	int keylen;
 	int no_pairs;
 	int no_longs;
 };
 
-struct btree_geo cbtree_geo32 = {
+struct cbtree_geo cbtree_geo32 = {
 	.keylen = 1,
 	.no_pairs = NODESIZE / sizeof(long) / 2,
 	.no_longs = NODESIZE / sizeof(long) / 2,
@@ -61,14 +60,14 @@ struct btree_geo cbtree_geo32 = {
 EXPORT_SYMBOL_GPL(cbtree_geo32);
 
 #define LONG_PER_U64 (64 / BITS_PER_LONG)
-struct btree_geo cbtree_geo64 = {
+struct cbtree_geo cbtree_geo64 = {
 	.keylen = LONG_PER_U64,
 	.no_pairs = NODESIZE / sizeof(long) / (1 + LONG_PER_U64),
 	.no_longs = LONG_PER_U64 * (NODESIZE / sizeof(long) / (1 + LONG_PER_U64)),
 };
 EXPORT_SYMBOL_GPL(cbtree_geo64);
 
-struct btree_geo cbtree_geo128 = {
+struct cbtree_geo cbtree_geo128 = {
 	.keylen = 2 * LONG_PER_U64,
 	.no_pairs = NODESIZE / sizeof(long) / (1 + 2 * LONG_PER_U64),
 	.no_longs = 2 * LONG_PER_U64 * (NODESIZE / sizeof(long) / (1 + 2 * LONG_PER_U64)),
@@ -77,21 +76,21 @@ EXPORT_SYMBOL_GPL(cbtree_geo128);
 
 #define MAX_KEYLEN	(2 * LONG_PER_U64)
 
-static struct kmem_cache *btree_cachep;
+// static struct kmem_cache *cbtree_cachep;
 
 void *cbtree_alloc(gfp_t gfp_mask, void *pool_data)
 {
-	return kmem_cache_alloc(btree_cachep, gfp_mask);
+	return kmem_cache_alloc(cbtree_cachep, gfp_mask);
 }
 EXPORT_SYMBOL_GPL(cbtree_alloc);
 
 void cbtree_free(void *element, void *pool_data)
 {
-	kmem_cache_free(btree_cachep, element);
+	kmem_cache_free(cbtree_cachep, element);
 }
 EXPORT_SYMBOL_GPL(cbtree_free);
 
-static unsigned long *btree_node_alloc(struct btree_head *head, gfp_t gfp)
+static unsigned long *cbtree_node_alloc(struct cbtree_head *head, gfp_t gfp)
 {
 	unsigned long *node;
 
@@ -133,7 +132,7 @@ static unsigned long *longset(unsigned long *s, unsigned long c, size_t n)
 	return s;
 }
 
-static void dec_key(struct btree_geo *geo, unsigned long *key)
+static void dec_key(struct cbtree_geo *geo, unsigned long *key)
 {
 	unsigned long val;
 	int i;
@@ -146,48 +145,48 @@ static void dec_key(struct btree_geo *geo, unsigned long *key)
 	}
 }
 
-static unsigned long *bkey(struct btree_geo *geo, unsigned long *node, int n)
+static unsigned long *bkey(struct cbtree_geo *geo, unsigned long *node, int n)
 {
 	return &node[n * geo->keylen];
 }
 
-static void *bval(struct btree_geo *geo, unsigned long *node, int n)
+static void *bval(struct cbtree_geo *geo, unsigned long *node, int n)
 {
 	return (void *)node[geo->no_longs + n];
 }
 
-static void setkey(struct btree_geo *geo, unsigned long *node, int n,
+static void setkey(struct cbtree_geo *geo, unsigned long *node, int n,
 		   unsigned long *key)
 {
 	longcpy(bkey(geo, node, n), key, geo->keylen);
 }
 
-static void setval(struct btree_geo *geo, unsigned long *node, int n,
+static void setval(struct cbtree_geo *geo, unsigned long *node, int n,
 		   void *val)
 {
 	node[geo->no_longs + n] = (unsigned long) val;
 }
 
-static void clearpair(struct btree_geo *geo, unsigned long *node, int n)
+static void clearpair(struct cbtree_geo *geo, unsigned long *node, int n)
 {
 	longset(bkey(geo, node, n), 0, geo->keylen);
 	node[geo->no_longs + n] = 0;
 }
 
-static inline void __cbtree_init(struct btree_head *head)
+static inline void __cbtree_init(struct cbtree_head *head)
 {
 	head->node = NULL;
 	head->height = 0;
 }
 
-void cbtree_init_mempool(struct btree_head *head, mempool_t *mempool)
+void cbtree_init_mempool(struct cbtree_head *head, mempool_t *mempool)
 {
 	__cbtree_init(head);
 	head->mempool = mempool;
 }
 EXPORT_SYMBOL_GPL(cbtree_init_mempool);
 
-int cbtree_init(struct btree_head *head)
+int cbtree_init(struct cbtree_head *head)
 {
 	__cbtree_init(head);
 	head->mempool = mempool_create(0, cbtree_alloc, cbtree_free, NULL);
@@ -197,7 +196,7 @@ int cbtree_init(struct btree_head *head)
 }
 EXPORT_SYMBOL_GPL(cbtree_init);
 
-void cbtree_destroy(struct btree_head *head)
+void cbtree_destroy(struct cbtree_head *head)
 {
 	mempool_free(head->node, head->mempool);
 	mempool_destroy(head->mempool);
@@ -205,7 +204,7 @@ void cbtree_destroy(struct btree_head *head)
 }
 EXPORT_SYMBOL_GPL(cbtree_destroy);
 
-void *cbtree_last(struct btree_head *head, struct btree_geo *geo,
+void *cbtree_last(struct cbtree_head *head, struct cbtree_geo *geo,
 		 unsigned long *key)
 {
 	int height = head->height;
@@ -222,13 +221,13 @@ void *cbtree_last(struct btree_head *head, struct btree_geo *geo,
 }
 EXPORT_SYMBOL_GPL(cbtree_last);
 
-static int keycmp(struct btree_geo *geo, unsigned long *node, int pos,
+static int keycmp(struct cbtree_geo *geo, unsigned long *node, int pos,
 		  unsigned long *key)
 {
 	return longcmp(bkey(geo, node, pos), key, geo->keylen);
 }
 
-static int keyzero(struct btree_geo *geo, unsigned long *key)
+static int keyzero(struct cbtree_geo *geo, unsigned long *key)
 {
 	int i;
 
@@ -239,7 +238,7 @@ static int keyzero(struct btree_geo *geo, unsigned long *key)
 	return 1;
 }
 
-void *cbtree_lookup(struct btree_head *head, struct btree_geo *geo,
+void *cbtree_lookup(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key)
 {
 	int i, height = head->height;
@@ -269,7 +268,7 @@ void *cbtree_lookup(struct btree_head *head, struct btree_geo *geo,
 }
 EXPORT_SYMBOL_GPL(cbtree_lookup);
 
-int cbtree_update(struct btree_head *head, struct btree_geo *geo,
+int cbtree_update(struct cbtree_head *head, struct cbtree_geo *geo,
 		 unsigned long *key, void *val)
 {
 	int i, height = head->height;
@@ -309,7 +308,7 @@ EXPORT_SYMBOL_GPL(cbtree_update);
  * So we set __key to the parent key and retry.  We have to use the smallest
  * such parent key, which is the last parent key we encountered.
  */
-void *cbtree_get_prev(struct btree_head *head, struct btree_geo *geo,
+void *cbtree_get_prev(struct cbtree_head *head, struct cbtree_geo *geo,
 		     unsigned long *__key)
 {
 	int i, height;
@@ -361,7 +360,7 @@ miss:
 }
 EXPORT_SYMBOL_GPL(cbtree_get_prev);
 
-static int getpos(struct btree_geo *geo, unsigned long *node,
+static int getpos(struct cbtree_geo *geo, unsigned long *node,
 		unsigned long *key)
 {
 	int i;
@@ -373,7 +372,7 @@ static int getpos(struct btree_geo *geo, unsigned long *node,
 	return i;
 }
 
-static int getfill(struct btree_geo *geo, unsigned long *node, int start)
+static int getfill(struct cbtree_geo *geo, unsigned long *node, int start)
 {
 	int i;
 
@@ -384,9 +383,9 @@ static int getfill(struct btree_geo *geo, unsigned long *node, int start)
 }
 
 /*
- * locate the correct leaf node in the btree
+ * locate the correct leaf node in the cbtree
  */
-static unsigned long *find_level(struct btree_head *head, struct btree_geo *geo,
+static unsigned long *find_level(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key, int level)
 {
 	unsigned long *node = head->node;
@@ -411,13 +410,13 @@ static unsigned long *find_level(struct btree_head *head, struct btree_geo *geo,
 	return node;
 }
 
-static int btree_grow(struct btree_head *head, struct btree_geo *geo,
+static int cbtree_grow(struct cbtree_head *head, struct cbtree_geo *geo,
 		      gfp_t gfp)
 {
 	unsigned long *node;
 	int fill;
 
-	node = btree_node_alloc(head, gfp);
+	node = cbtree_node_alloc(head, gfp);
 	if (!node)
 		return -ENOMEM;
 	if (head->node) {
@@ -430,7 +429,7 @@ static int btree_grow(struct btree_head *head, struct btree_geo *geo,
 	return 0;
 }
 
-static void btree_shrink(struct btree_head *head, struct btree_geo *geo)
+static void cbtree_shrink(struct cbtree_head *head, struct cbtree_geo *geo)
 {
 	unsigned long *node;
 	int fill;
@@ -446,7 +445,7 @@ static void btree_shrink(struct btree_head *head, struct btree_geo *geo)
 	mempool_free(node, head->mempool);
 }
 
-static int cbtree_insert_level(struct btree_head *head, struct btree_geo *geo,
+static int cbtree_insert_level(struct cbtree_head *head, struct cbtree_geo *geo,
 			      unsigned long *key, void *val, int level,
 			      gfp_t gfp)
 {
@@ -455,7 +454,7 @@ static int cbtree_insert_level(struct btree_head *head, struct btree_geo *geo,
 
 	BUG_ON(!val);
 	if (head->height < level) {
-		err = btree_grow(head, geo, gfp);
+		err = cbtree_grow(head, geo, gfp);
 		if (err)
 			return err;
 	}
@@ -471,7 +470,7 @@ retry:
 		/* need to split node */
 		unsigned long *new;
 
-		new = btree_node_alloc(head, gfp);
+		new = cbtree_node_alloc(head, gfp);
 		if (!new)
 			return -ENOMEM;
 		err = cbtree_insert_level(head, geo,
@@ -508,7 +507,7 @@ retry:
 	return 0;
 }
 
-int cbtree_insert(struct btree_head *head, struct btree_geo *geo,
+int cbtree_insert(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key, void *val, gfp_t gfp)
 {
 	BUG_ON(!val);
@@ -516,9 +515,9 @@ int cbtree_insert(struct btree_head *head, struct btree_geo *geo,
 }
 EXPORT_SYMBOL_GPL(cbtree_insert);
 
-static void *cbtree_remove_level(struct btree_head *head, struct btree_geo *geo,
+static void *cbtree_remove_level(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key, int level);
-static void merge(struct btree_head *head, struct btree_geo *geo, int level,
+static void merge(struct cbtree_head *head, struct cbtree_geo *geo, int level,
 		unsigned long *left, int lfill,
 		unsigned long *right, int rfill,
 		unsigned long *parent, int lpos)
@@ -538,7 +537,7 @@ static void merge(struct btree_head *head, struct btree_geo *geo, int level,
 	mempool_free(right, head->mempool);
 }
 
-static void rebalance(struct btree_head *head, struct btree_geo *geo,
+static void rebalance(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key, int level, unsigned long *child, int fill)
 {
 	unsigned long *parent, *left = NULL, *right = NULL;
@@ -589,7 +588,7 @@ static void rebalance(struct btree_head *head, struct btree_geo *geo,
 	 */
 }
 
-static void *cbtree_remove_level(struct btree_head *head, struct btree_geo *geo,
+static void *cbtree_remove_level(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key, int level)
 {
 	unsigned long *node;
@@ -621,13 +620,13 @@ static void *cbtree_remove_level(struct btree_head *head, struct btree_geo *geo,
 		if (level < head->height)
 			rebalance(head, geo, key, level, node, fill - 1);
 		else if (fill - 1 == 1)
-			btree_shrink(head, geo);
+			cbtree_shrink(head, geo);
 	}
 
 	return ret;
 }
 
-void *cbtree_remove(struct btree_head *head, struct btree_geo *geo,
+void *cbtree_remove(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key)
 {
 	if (head->height == 0)
@@ -637,8 +636,8 @@ void *cbtree_remove(struct btree_head *head, struct btree_geo *geo,
 }
 EXPORT_SYMBOL_GPL(cbtree_remove);
 
-int cbtree_merge(struct btree_head *target, struct btree_head *victim,
-		struct btree_geo *geo, gfp_t gfp)
+int cbtree_merge(struct cbtree_head *target, struct cbtree_head *victim,
+		struct cbtree_geo *geo, gfp_t gfp)
 {
 	unsigned long key[MAX_KEYLEN];
 	unsigned long dup[MAX_KEYLEN];
@@ -674,7 +673,7 @@ int cbtree_merge(struct btree_head *target, struct btree_head *victim,
 }
 EXPORT_SYMBOL_GPL(cbtree_merge);
 
-static size_t __btree_for_each(struct btree_head *head, struct btree_geo *geo,
+static size_t __cbtree_for_each(struct cbtree_head *head, struct cbtree_geo *geo,
 			       unsigned long *node, unsigned long opaque,
 			       void (*func)(void *elem, unsigned long opaque,
 					    unsigned long *key, size_t index,
@@ -689,7 +688,7 @@ static size_t __btree_for_each(struct btree_head *head, struct btree_geo *geo,
 		if (!child)
 			break;
 		if (height > 1)
-			count = __btree_for_each(head, geo, child, opaque,
+			count = __cbtree_for_each(head, geo, child, opaque,
 					func, func2, reap, height - 1, count);
 		else
 			func(child, opaque, bkey(geo, node, i), count++,
@@ -744,7 +743,7 @@ void cvisitor128(void *elem, unsigned long opaque, unsigned long *__key,
 }
 EXPORT_SYMBOL_GPL(cvisitor128);
 
-size_t cbtree_visitor(struct btree_head *head, struct btree_geo *geo,
+size_t cbtree_visitor(struct cbtree_head *head, struct cbtree_geo *geo,
 		     unsigned long opaque,
 		     void (*func)(void *elem, unsigned long opaque,
 		     		  unsigned long *key,
@@ -756,13 +755,13 @@ size_t cbtree_visitor(struct btree_head *head, struct btree_geo *geo,
 	if (!func2)
 		func = empty;
 	if (head->node)
-		count = __btree_for_each(head, geo, head->node, opaque, func,
+		count = __cbtree_for_each(head, geo, head->node, opaque, func,
 				func2, 0, head->height, 0);
 	return count;
 }
 EXPORT_SYMBOL_GPL(cbtree_visitor);
 
-size_t cbtree_grim_visitor(struct btree_head *head, struct btree_geo *geo,
+size_t cbtree_grim_visitor(struct cbtree_head *head, struct cbtree_geo *geo,
 			  unsigned long opaque,
 			  void (*func)(void *elem, unsigned long opaque,
 				       unsigned long *key,
@@ -774,30 +773,28 @@ size_t cbtree_grim_visitor(struct btree_head *head, struct btree_geo *geo,
 	if (!func2)
 		func = empty;
 	if (head->node)
-		count = __btree_for_each(head, geo, head->node, opaque, func,
+		count = __cbtree_for_each(head, geo, head->node, opaque, func,
 				func2, 1, head->height, 0);
 	__cbtree_init(head);
 	return count;
 }
 EXPORT_SYMBOL_GPL(cbtree_grim_visitor);
 
-static int __init cbtree_module_init(void)
-{
-	printk("CBtree Start");
-	btree_cachep = kmem_cache_create("btree_node", NODESIZE, 0,
-			SLAB_HWCACHE_ALIGN, NULL);
-	return 0;
-}
+// static int __init cbtree_module_init(void)
+// {
+// 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
+// 			SLAB_HWCACHE_ALIGN, NULL);
+// 	return 0;
+// }
 
-static void __exit cbtree_module_exit(void)
-{
-	printk("CBtree End");
-	kmem_cache_destroy(btree_cachep);
-}
+// static void __exit cbtree_module_exit(void)
+// {
+// 	kmem_cache_destroy(cbtree_cachep);
+// }
 
-/* If core code starts using btree, initialization should happen even earlier */
-module_init(cbtree_module_init);
-module_exit(cbtree_module_exit);
+// /* If core code starts using cbtree, initialization should happen even earlier */
+// module_init(cbtree_module_init);
+// module_exit(cbtree_module_exit);
 
 MODULE_AUTHOR("Joern Engel <joern@logfs.org>");
 MODULE_AUTHOR("Johannes Berg <johannes@sipsolutions.net>");

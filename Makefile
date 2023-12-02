@@ -1,5 +1,5 @@
-obj-m += btree_module.o 
-btree_module-y := btree_profiling.o calclock.o #ds_monitoring.o
+obj-m += cbtree.o 
+cbtree-y := btree_profiling.o cbtree_base.o calclock.o #ds_monitoring.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)

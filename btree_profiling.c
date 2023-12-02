@@ -1,7 +1,9 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/btree.h>
+#include <linux/cache.h>
+#include <linux/slab.h>
+#include "cbtree_base.h"
 #include <linux/pid.h>
 #include "calclock.h"
 
@@ -11,11 +13,11 @@ MODULE_AUTHOR("Herman Bale");
 MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastructure in the Linux source code");
 
 // Declare the B+ tree
-struct btree_head tree;
+struct cbtree_head tree;
 unsigned long tree_size = 50;
 
 // Fetch tree geometry
-extern struct btree_geo btree_geo32;
+extern struct cbtree_geo cbtree_geo32;
 
 // Define leaf node structure
 struct data_element {
@@ -24,16 +26,16 @@ struct data_element {
 
 void create_tree(void){
 
-	btree_init(&tree);
+	cbtree_init(&tree);
 }
 
-KTDEF(btree_lookup_iter);
+KTDEF(cbtree_lookup_iter);
 
 void insert_element(unsigned long key){
 
 	struct data_element insert_data = {.key = key};
 
-	btree_insert(&tree, &btree_geo32, &key, &insert_data, GFP_KERNEL);
+	cbtree_insert(&tree, &cbtree_geo32, &key, &insert_data, GFP_KERNEL);
 
 	printk("Inserted key %ld in B+ tree\n", key);
 }
@@ -51,9 +53,9 @@ struct data_element* find_element(unsigned long key){
 
 	ktime_t localclock[2];
 	ktget(&localclock[0]);
-	struct data_element *result = btree_lookup(&tree, &btree_geo32, &key);
+	struct data_element *result = cbtree_lookup(&tree, &cbtree_geo32, &key);
 	ktget(&localclock[1]);
-	ktput(localclock, btree_lookup_iter);
+	ktput(localclock, cbtree_lookup_iter);
 
 
 	if (result){
@@ -78,19 +80,24 @@ void find_tree(void){
 
 static int __init bplus_module_init(void){
 	printk("Initializing bplus_module\n");
+
+	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
+			SLAB_HWCACHE_ALIGN, NULL);
 	
-	create_tree();
-	fill_tree();
+	// create_tree();
+	// fill_tree();
 	
 	return 0;
 }
 
 static void __exit bplus_module_exit(void){
 	printk("Exiting bplus_module\n");
+
+	kmem_cache_destroy(cbtree_cachep);
 	
-	find_tree();
-	ktprint(2, btree_lookup_iter);
-	btree_destroy(&tree);
+	// find_tree();
+	// ktprint(2, cbtree_lookup_iter);
+	// cbtree_destroy(&tree);
 }
 
 
