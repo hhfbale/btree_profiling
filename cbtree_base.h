@@ -10,7 +10,7 @@
  *
  * A B+Tree is a data structure for looking up arbitrary (currently allowing
  * unsigned long, u32, u64 and 2 * u64) keys into pointers. The data structure
- * is described at http://en.wikipedia.org/wiki/B-tree, we currently do not
+ * is described at https://en.wikipedia.org/wiki/B-tree, we currently do not
  * use binary search to find the key on lookups.
  *
  * Each B+Tree consists of a head, that contains bookkeeping information and
@@ -208,6 +208,7 @@ static struct kmem_cache *cbtree_cachep;
 #include "cbtree-128.h"
 
 extern struct cbtree_geo cbtree_geo32;
+#define BTREE_TYPE_SUFFIX l
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define NODESIZE MAX(L1_CACHE_BYTES, 128)
 #define CBTREE_TYPE_SUFFIX l

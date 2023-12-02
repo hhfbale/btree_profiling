@@ -38,6 +38,7 @@
  */
 
 #include "cbtree_base.h"
+#include "cbtree_cache.h"
 #include <linux/cache.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -45,6 +46,8 @@
 
 // #define MAX(a, b) ((a) > (b) ? (a) : (b))
 // #define NODESIZE MAX(L1_CACHE_BYTES, 128)
+#define CACHE_LENTH 3   // 1 for cache queue 1 for count 1 for to check is it deleted
+#define CACHE_START geo->keylen * geo->no_pairs + geo->no_longs
 
 struct cbtree_geo {
 	int keylen;
@@ -54,23 +57,23 @@ struct cbtree_geo {
 
 struct cbtree_geo cbtree_geo32 = {
 	.keylen = 1,
-	.no_pairs = NODESIZE / sizeof(long) / 2,
-	.no_longs = NODESIZE / sizeof(long) / 2,
+	.no_pairs = (NODESIZE - CACHE_LENTH) / sizeof(long) / 2,
+	.no_longs = (NODESIZE - CACHE_LENTH) / sizeof(long) / 2,
 };
 EXPORT_SYMBOL_GPL(cbtree_geo32);
 
 #define LONG_PER_U64 (64 / BITS_PER_LONG)
 struct cbtree_geo cbtree_geo64 = {
 	.keylen = LONG_PER_U64,
-	.no_pairs = NODESIZE / sizeof(long) / (1 + LONG_PER_U64),
-	.no_longs = LONG_PER_U64 * (NODESIZE / sizeof(long) / (1 + LONG_PER_U64)),
+	.no_pairs = (NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + LONG_PER_U64),
+	.no_longs = LONG_PER_U64 * ((NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + LONG_PER_U64)),
 };
 EXPORT_SYMBOL_GPL(cbtree_geo64);
 
 struct cbtree_geo cbtree_geo128 = {
 	.keylen = 2 * LONG_PER_U64,
-	.no_pairs = NODESIZE / sizeof(long) / (1 + 2 * LONG_PER_U64),
-	.no_longs = 2 * LONG_PER_U64 * (NODESIZE / sizeof(long) / (1 + 2 * LONG_PER_U64)),
+	.no_pairs = (NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + 2 * LONG_PER_U64),
+	.no_longs = 2 * LONG_PER_U64 * ((NODESIZE - CACHE_LENTH) / sizeof(long) / (1 + 2 * LONG_PER_U64)),
 };
 EXPORT_SYMBOL_GPL(cbtree_geo128);
 
@@ -97,6 +100,7 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, gfp_t gfp)
 	node = mempool_alloc(head->mempool, gfp);
 	if (likely(node))
 		memset(node, 0, NODESIZE);
+	initQueue((CircularQueue*)node[CACHE_START]);
 	return node;
 }
 
@@ -227,6 +231,31 @@ static int keycmp(struct cbtree_geo *geo, unsigned long *node, int pos,
 	return longcmp(bkey(geo, node, pos), key, geo->keylen);
 }
 
+//binary search for cbtree, it just maked for to search one node's key
+int cbtree_bi_search(struct cbtree_head *node, struct cbtree_geo *geo,
+		unsigned long *key){
+	int mid = 0;
+	int back = geo->no_pairs;
+	int front = 0;
+	while(back >= front){
+		mid = (front + back)/2;
+		if (!bval(geo, node, mid)){
+			back = mid - 1;
+		}
+		else if (keycmp(geo, node, mid, key) == 0){
+			return mid;
+		}
+		else if(keycmp(geo, node, mid, key) < 0){
+			front = mid + 1;
+		}
+		else{
+			back = mid - 1;
+		}
+	}
+	return front;
+
+}
+
 static int keyzero(struct cbtree_geo *geo, unsigned long *key)
 {
 	int i;
@@ -238,26 +267,69 @@ static int keyzero(struct cbtree_geo *geo, unsigned long *key)
 	return 1;
 }
 
-void *cbtree_lookup(struct cbtree_head *head, struct cbtree_geo *geo,
-		unsigned long *key)
+static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node, struct cbtree_geo *geo,
+		unsigned long *key, int height)
 {
-	int i, height = head->height;
-	unsigned long *node = head->node;
+	int i;
+	unsigned long *node = h_node;
+	unsigned long *temp_n = NULL;
 
 	if (height == 0)
 		return NULL;
-
+	
+	///changed code to recersive funtion
+	for(int j ; j < 4;j++ ){
+			temp_n = findNode((CircularQueue*)node[CACHE_START], key, head);
+	}
+	if(temp_n != NULL)
+		return temp_n;
+	for (i = 0; i < geo->no_pairs; i++)
+		if (keycmp(geo, node, i, key) <= 0)
+			break;
+	if (i == geo->no_pairs)
+		return NULL;
+	node = bval(geo, node, i);
+	if (!node)
+		return NULL;
+	if(height <= 1){
+		for (i = 0; i < geo->no_pairs; i++)
+			if (keycmp(geo, node, i, key) == 0)
+				return node;
+		return NULL;
+	}
+	node = cbtree_lookup_node(node, geo, key, height - 1);
+	if(node != NULL)
+		setcache((CircularQueue*)node[CACHE_START], head, node, key, CACHE_START, keylen);
+	
+	/*
 	for ( ; height > 1; height--) {
+		for(int j ; j < 4;j++ ){
+			temp_n = getNodeValue((CircularQueue*)node[CACHE_START], key, head);
+		}
+		if(temp_n != NULL)
+			return temp_n;
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) <= 0)
 				break;
 		if (i == geo->no_pairs)
 			return NULL;
+		setcache((CircularQueue*)node[CACHE_START], head, unsigned long * node, unsigned long * key, unsigned long * c_key, int arr_len, int key_len)
 		node = bval(geo, node, i);
 		if (!node)
 			return NULL;
 	}
+ 	*/
+	return node;
+}
 
+void *cbtree_lookup(struct cbtree_head *head, struct cbtree_geo *geo,
+		unsigned long *key)
+{
+	int i;
+	unsigned long *node;
+	
+	node = head->node;
+	node = cbtree_lookup_node(head, node, geo, key, head->height);
 	if (!node)
 		return NULL;
 
@@ -271,23 +343,10 @@ EXPORT_SYMBOL_GPL(cbtree_lookup);
 int cbtree_update(struct cbtree_head *head, struct cbtree_geo *geo,
 		 unsigned long *key, void *val)
 {
-	int i, height = head->height;
-	unsigned long *node = head->node;
+	int i;
+	unsigned long *node;
 
-	if (height == 0)
-		return -ENOENT;
-
-	for ( ; height > 1; height--) {
-		for (i = 0; i < geo->no_pairs; i++)
-			if (keycmp(geo, node, i, key) <= 0)
-				break;
-		if (i == geo->no_pairs)
-			return -ENOENT;
-		node = bval(geo, node, i);
-		if (!node)
-			return -ENOENT;
-	}
-
+	node = cbtree_lookup_node(head, geo, key);
 	if (!node)
 		return -ENOENT;
 
@@ -359,7 +418,7 @@ miss:
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(cbtree_get_prev);
-
+ 
 static int getpos(struct cbtree_geo *geo, unsigned long *node,
 		unsigned long *key)
 {
@@ -442,6 +501,7 @@ static void cbtree_shrink(struct cbtree_head *head, struct cbtree_geo *geo)
 	BUG_ON(fill > 1);
 	head->node = bval(geo, node, 0);
 	head->height--;
+	freeQueue((CircularQueue*)node[CACHE_START], head, CACHE_START);
 	mempool_free(node, head->mempool);
 }
 
@@ -523,7 +583,9 @@ static void merge(struct cbtree_head *head, struct cbtree_geo *geo, int level,
 		unsigned long *parent, int lpos)
 {
 	int i;
+	unsinged long *cache_ptr; 									// cache pointer
 
+	
 	for (i = 0; i < rfill; i++) {
 		/* Move all keys to the left */
 		setkey(geo, left, lfill + i, bkey(geo, right, i));
@@ -534,7 +596,21 @@ static void merge(struct cbtree_head *head, struct cbtree_geo *geo, int level,
 	setval(geo, parent, lpos + 1, left);
 	/* Remove left (formerly right) child from parent */
 	cbtree_remove_level(head, geo, bkey(geo, parent, lpos), level + 1);
-	mempool_free(right, head->mempool);
+	
+	////////////////////////// added code to free cache memory
+	////////////////////////// in this if statement allocated node really deleted
+	cache_ptr = right;
+	freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
+	//////////////////////////cache memory free
+
+	if(cache_ptr[CACHE_START + 1] == 0){
+		mempool_free(right, head->mempool);
+	}
+	else{
+		cache_ptr[CACHE_START + 2] = 1;	
+	}
+	//not free node, just chang cache state
+	//mempool_free(right, head->mempool);    //this is original code
 }
 
 static void rebalance(struct cbtree_head *head, struct cbtree_geo *geo,
@@ -542,6 +618,7 @@ static void rebalance(struct cbtree_head *head, struct cbtree_geo *geo,
 {
 	unsigned long *parent, *left = NULL, *right = NULL;
 	int i, no_left, no_right;
+	unsinged long *cache_ptr; 									// cache pointer
 
 	if (fill == 0) {
 		/* Because we don't steal entries from a neighbour, this case
@@ -549,7 +626,21 @@ static void rebalance(struct cbtree_head *head, struct cbtree_geo *geo,
 		 * node, so merging with a sibling never happens.
 		 */
 		cbtree_remove_level(head, geo, key, level + 1);
-		mempool_free(child, head->mempool);
+
+		////////////////////////// added code to free cache memory
+		////////////////////////// in this if statement allocated node really deleted
+		cache_ptr = child;
+		freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
+		//////////////////////////cache memory free
+
+		if(cache_ptr[CACHE_START + 1] == 0){
+		mempool_free(right, head->mempool);
+		}
+		else{
+			cache_ptr[CACHE_START + 2] = 1;	
+		}
+		//not free node, just chang cache state
+		//mempool_free(right, head->mempool);    //this is original code
 		return;
 	}
 
@@ -608,13 +699,13 @@ static void *cbtree_remove_level(struct cbtree_head *head, struct cbtree_geo *ge
 	if ((level == 1) && (keycmp(geo, node, pos, key) != 0))
 		return NULL;
 	ret = bval(geo, node, pos);
-
+	
 	/* remove and shift */
 	for (i = pos; i < fill - 1; i++) {
 		setkey(geo, node, i, bkey(geo, node, i + 1));
 		setval(geo, node, i, bval(geo, node, i + 1));
 	}
-	clearpair(geo, node, fill - 1);
+		clearpair(geo, node, fill - 1);
 
 	if (fill - 1 < geo->no_pairs / 2) {
 		if (level < head->height)
@@ -694,8 +785,10 @@ static size_t __cbtree_for_each(struct cbtree_head *head, struct cbtree_geo *geo
 			func(child, opaque, bkey(geo, node, i), count++,
 					func2);
 	}
-	if (reap)
+	if (reap){
+		freeQueue((CircularQueue*)node[CACHE_START], head, CACHE_START);
 		mempool_free(node, head->mempool);
+	}
 	return count;
 }
 
@@ -780,6 +873,16 @@ size_t cbtree_grim_visitor(struct cbtree_head *head, struct cbtree_geo *geo,
 }
 EXPORT_SYMBOL_GPL(cbtree_grim_visitor);
 
+/*
+I don't know that tree variable created as a dynamic variable
+to use this funtion problem should be checked
+cbtree_head* create_tree(void){
+	cbtree_head tree;
+	cbtree_init(&tree);
+	return tree&
+}
+*/
+
 // static int __init cbtree_module_init(void)
 // {
 // 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
@@ -796,6 +899,5 @@ EXPORT_SYMBOL_GPL(cbtree_grim_visitor);
 // module_init(cbtree_module_init);
 // module_exit(cbtree_module_exit);
 
-MODULE_AUTHOR("Joern Engel <joern@logfs.org>");
-MODULE_AUTHOR("Johannes Berg <johannes@sipsolutions.net>");
+MODULE_AUTHOR("bae tae hyeon>");
 MODULE_LICENSE("GPL");

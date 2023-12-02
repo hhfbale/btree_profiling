@@ -1,15 +1,5 @@
 #include "cbtree_cache.h"
 
-typedef struct Node {
-    unsigned long *node;
-    unsigned long *key;
-    struct Node* next;
-} Node;
-
-typedef struct {
-    Node* head;
-} CircularQueue;
-
 void initQueue(CircularQueue* q) {
     Node *current, *previous = NULL;
     Node *first = NULL;
