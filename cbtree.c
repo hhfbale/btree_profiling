@@ -222,9 +222,9 @@ static int keyzero(struct cbtree_geo *geo, unsigned long *key)
 }
 
 static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node, struct cbtree_geo *geo,
-		unsigned long *key)
+		unsigned long *key, int height)
 {
-	int i, height = head->height;
+	int i;
 	unsigned long *node = h_node;
 	unsigned long *temp_n = NULL;
 
@@ -245,7 +245,13 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	node = bval(geo, node, i);
 	if (!node)
 		return NULL;
-	node = cbtree_lookup_node(node, geo, key);
+	if(height <= 1){
+		for (i = 0; i < geo->no_pairs; i++)
+			if (keycmp(geo, node, i, key) == 0)
+				return node;
+		return NULL;
+	}
+	node = cbtree_lookup_node(node, geo, key, height - 1);
 	if(node != NULL)
 		setcache((CircularQueue*)node[CACHE_START], head, node, key, CACHE_START, keylen);
 	
@@ -277,7 +283,7 @@ void *cbtree_lookup(struct cbtree_head *head, struct cbtree_geo *geo,
 	unsigned long *node;
 	
 	node = head->node;
-	node = cbtree_lookup_node(head, node, geo, key);
+	node = cbtree_lookup_node(head, node, geo, key, head->height);
 	if (!node)
 		return NULL;
 
