@@ -16,6 +16,8 @@ void initQueue(CircularQueue* q) {
 
     for (int i = 0; i < 4; i++) {
         current = kmalloc(sizeof(Node), GFP_KERNEL);
+	
+	//check malloc error
         if (!current) {
             printk(KERN_ERR "Memory allocation failed for node %d\n", i);
             current = first;
