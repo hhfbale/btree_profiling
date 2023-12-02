@@ -626,8 +626,12 @@ static void merge(struct btree_head *head, struct btree_geo *geo, int level,
 	freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
 	//////////////////////////cache memory free
 
-
-	cache_ptr[CACHE_START + 2] = 1;
+	if(cache_ptr[CACHE_START + 1] == 0){
+		mempool_free(right, head->mempool);
+	}
+	else{
+		cache_ptr[CACHE_START + 2] = 1;	
+	}
 	//not free node, just chang cache state
 	//mempool_free(right, head->mempool);    //this is original code
 }
@@ -652,7 +656,12 @@ static void rebalance(struct btree_head *head, struct btree_geo *geo,
 		freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
 		//////////////////////////cache memory free
 
-		cache_ptr[CACHE_START + 2] = 1;
+		if(cache_ptr[CACHE_START + 1] == 0){
+		mempool_free(right, head->mempool);
+		}
+		else{
+			cache_ptr[CACHE_START + 2] = 1;	
+		}
 		//not free node, just chang cache state
 		//mempool_free(right, head->mempool);    //this is original code
 		return;
