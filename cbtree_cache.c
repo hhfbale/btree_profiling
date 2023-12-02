@@ -1,4 +1,4 @@
-#include "btree_cache.h"
+#include "cbtree_cache.h"
 
 typedef struct Node {
     unsigned long *node;
@@ -47,7 +47,7 @@ void initQueue(CircularQueue* q) {
     q->head = first;
 }
 
-void setcache(CircularQueue* q,struct btree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
+void setcache(CircularQueue* q,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
 	Node* current = q->head;
 	if(current != NULL){
 		if(current->node[arr_len + 1] == 1 && current->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
@@ -90,7 +90,7 @@ static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t
 	return 0;
 }
 
-void* findNode(CircularQueue* q, unsinged long* key, struct btree_head *head) {
+void* findNode(CircularQueue* q, unsinged long* key, struct cbtree_head *head) {
     Node *current = q->head;
 
     Node *first = current;
@@ -109,7 +109,7 @@ void* findNode(CircularQueue* q, unsinged long* key, struct btree_head *head) {
     return NULL;
 }
 
-void freeQueue(CircularQueue* q,struct btree_head *head, int arr_len) { //arr_len is the length of orignal node
+void freeQueue(CircularQueue* q,struct cbtree_head *head, int arr_len) { //arr_len is the length of orignal node
     Node *current = q->head;
 
     if (!current) {
