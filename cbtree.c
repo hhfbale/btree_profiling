@@ -58,6 +58,7 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, gfp_t gfp)
 	node = mempool_alloc(head->mempool, gfp);
 	if (likely(node))
 		memset(node, 0, NODESIZE);
+	initQueue((CircularQueue*)node[CACHE_START]);
 	return node;
 }
 
