@@ -60,7 +60,7 @@ void setcache(CircularQueue* q,struct cbtree_head *head, unsigned long * node, u
 	current->node = node;
 	current->node[arr_len + 1] += 1;
 	for(int i = 0;i++ ;i <key_len){
-    	current->key[i] = key[i];
+		current->key[i] = key[i];
     }
 }
 
