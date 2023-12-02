@@ -93,7 +93,7 @@ void* findNode(CircularQueue* q, unsigned long* key, struct cbtree_head *head, i
 		if(curr->node[arr_len + 2] == 1){
 			mempool_free(curr->node, head->mempool);
 		}
-        else if(cachelongcmp(key, curr->key)){
+        else if(cachelongcmp(key, curr->key,arr_len)){
             return curr->node;
         }
         q->head = curr->next;
