@@ -47,7 +47,7 @@
 // #define MAX(a, b) ((a) > (b) ? (a) : (b))
 // #define NODESIZE MAX(L1_CACHE_BYTES, 128)
 #define CACHE_LENTH 3   // 1 for cache queue 1 for count 1 for to check is it deleted
-#define CACHE_START geo->keylen * geo->no_pairs + geo->no_longs
+//#define CACHE_START geo->keylen * geo->no_pairs + geo->no_longs
 
 struct cbtree_geo {
 	int keylen;
@@ -93,14 +93,14 @@ void cbtree_free(void *element, void *pool_data)
 }
 EXPORT_SYMBOL_GPL(cbtree_free);
 
-static unsigned long *cbtree_node_alloc(struct cbtree_head *head, gfp_t gfp)
+static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_geo* geo,gfp_t gfp)
 {
 	unsigned long *node;
 
 	node = mempool_alloc(head->mempool, gfp);
 	if (likely(node))
 		memset(node, 0, NODESIZE);
-	initQueue((CircularQueue*)node[CACHE_START]);
+	initQueue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs]);
 	return node;
 }
 
@@ -279,7 +279,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	
 	///changed code to recersive funtion
 	for(int j ; j < 4;j++ ){
-			temp_n = findNode((CircularQueue*)node[CACHE_START], key, head, CACHE_START);
+			temp_n = findNode((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
 	}
 	if(temp_n != NULL)
 		return temp_n;
@@ -299,7 +299,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	}
 	node = cbtree_lookup_node(node, geo, key, height - 1);
 	if(node != NULL)
-		setcache((CircularQueue*)node[CACHE_START], head, node, key, CACHE_START, keylen);
+		setcache((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs], head, node, key, geo->keylen * geo->no_pairs + geo->no_longs, keylen);
 	
 	/*
 	for ( ; height > 1; height--) {
@@ -475,7 +475,7 @@ static int cbtree_grow(struct cbtree_head *head, struct cbtree_geo *geo,
 	unsigned long *node;
 	int fill;
 
-	node = cbtree_node_alloc(head, gfp);
+	node = cbtree_node_alloc(head, geo, gfp);
 	if (!node)
 		return -ENOMEM;
 	if (head->node) {
@@ -501,7 +501,7 @@ static void cbtree_shrink(struct cbtree_head *head, struct cbtree_geo *geo)
 	BUG_ON(fill > 1);
 	head->node = bval(geo, node, 0);
 	head->height--;
-	freeQueue((CircularQueue*)node[CACHE_START], head, CACHE_START);
+	freeQueue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs], head, geo->keylen * geo->no_pairs + geo->no_longs);
 	mempool_free(node, head->mempool);
 }
 
@@ -530,7 +530,7 @@ retry:
 		/* need to split node */
 		unsigned long *new;
 
-		new = cbtree_node_alloc(head, gfp);
+		new = cbtree_node_alloc(head, geo, gfp);
 		if (!new)
 			return -ENOMEM;
 		err = cbtree_insert_level(head, geo,
@@ -600,14 +600,14 @@ static void merge(struct cbtree_head *head, struct cbtree_geo *geo, int level,
 	////////////////////////// added code to free cache memory
 	////////////////////////// in this if statement allocated node really deleted
 	cache_ptr = right;
-	freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
+	freeQueue((CircularQueue*)cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs]);
 	//////////////////////////cache memory free
 
-	if(cache_ptr[CACHE_START + 1] == 0){
+	if(cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs + 1] == 0){
 		mempool_free(right, head->mempool);
 	}
 	else{
-		cache_ptr[CACHE_START + 2] = 1;	
+		cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs + 2] = 1;	
 	}
 	//not free node, just chang cache state
 	//mempool_free(right, head->mempool);    //this is original code
@@ -630,14 +630,14 @@ static void rebalance(struct cbtree_head *head, struct cbtree_geo *geo,
 		////////////////////////// added code to free cache memory
 		////////////////////////// in this if statement allocated node really deleted
 		cache_ptr = child;
-		freeQueue((CircularQueue*)cache_ptr[CACHE_START]);
+		freeQueue((CircularQueue*)cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs]);
 		//////////////////////////cache memory free
 
-		if(cache_ptr[CACHE_START + 1] == 0){
+		if(cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs + 1] == 0){
 		mempool_free(right, head->mempool);
 		}
 		else{
-			cache_ptr[CACHE_START + 2] = 1;	
+			cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs + 2] = 1;	
 		}
 		//not free node, just chang cache state
 		//mempool_free(right, head->mempool);    //this is original code
@@ -786,7 +786,7 @@ static size_t __cbtree_for_each(struct cbtree_head *head, struct cbtree_geo *geo
 					func2);
 	}
 	if (reap){
-		freeQueue((CircularQueue*)node[CACHE_START], head, CACHE_START);
+		freeQueue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs], head, geo->keylen * geo->no_pairs + geo->no_longs);
 		mempool_free(node, head->mempool);
 	}
 	return count;
