@@ -618,7 +618,7 @@ static void rebalance(struct cbtree_head *head, struct cbtree_geo *geo,
 {
 	unsigned long *parent, *left = NULL, *right = NULL;
 	int i, no_left, no_right;
-	unsinged long *cache_ptr; 									// cache pointer
+	unsigned long *cache_ptr; 									// cache pointer
 
 	if (fill == 0) {
 		/* Because we don't steal entries from a neighbour, this case
