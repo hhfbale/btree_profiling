@@ -232,29 +232,6 @@ static int keycmp(struct cbtree_geo *geo, unsigned long *node, int pos,
 }
 
 //binary search for cbtree, it just maked for to search one node's key
-int cbtree_bi_search(struct cbtree_head *node, struct cbtree_geo *geo,
-		unsigned long *key){
-	int mid = 0;
-	int back = geo->no_pairs;
-	int front = 0;
-	while(back >= front){
-		mid = (front + back)/2;
-		if (!bval(geo, node, mid)){
-			back = mid - 1;
-		}
-		else if (keycmp(geo, node, mid, key) == 0){
-			return mid;
-		}
-		else if(keycmp(geo, node, mid, key) < 0){
-			front = mid + 1;
-		}
-		else{
-			back = mid - 1;
-		}
-	}
-	return front;
-
-}
 
 static int keyzero(struct cbtree_geo *geo, unsigned long *key)
 {
@@ -278,7 +255,8 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 		return NULL;
 	
 	///changed code to recersive funtion
-	for(int j ; j < 4;j++ ){
+	int j;
+	for(j = 0 ; j < 4;j++ ){
 			temp_n = findNode((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
 	}
 	if(temp_n != NULL)
@@ -297,9 +275,9 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 				return node;
 		return NULL;
 	}
-	node = cbtree_lookup_node(node, geo, key, height - 1);
+	node = cbtree_lookup_node(head, node, geo, key, height - 1);
 	if(node != NULL)
-		setcache((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs], head, node, key, geo->keylen * geo->no_pairs + geo->no_longs, keylen);
+		setcache((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs], head, node, key, geo->keylen * geo->no_pairs + geo->no_longs, geo->keylen);
 	
 	/*
 	for ( ; height > 1; height--) {
