@@ -14,7 +14,7 @@ MODULE_AUTHOR("Herman Bale");
 MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastructure in the Linux source code");
 
 // Define the size of the tree
-#define TREE_SIZE 100
+#define TREE_SIZE 10
 
 // Define leaf node structure
 struct data_element {
@@ -121,12 +121,9 @@ void find_tree(void){
 static int __init bplus_module_init(void){
 
 	printk("Initializing bplus_module\n");
-
-	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
-			SLAB_HWCACHE_ALIGN, NULL);
 	
-	// create_tree();
-	// fill_tree();
+	create_tree();
+	fill_tree();
 	
 	return 0;
 }
@@ -147,7 +144,7 @@ static void __exit bplus_module_exit(void){
     // }
 	
 	// ktprint(2, cbtree_lookup_iter);
-	// cbtree_destroy(&tree);
+	cbtree_destroy(&tree);
 }
 
 module_init(bplus_module_init);
