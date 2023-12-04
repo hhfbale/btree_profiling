@@ -324,7 +324,7 @@ int cbtree_update(struct cbtree_head *head, struct cbtree_geo *geo,
 	int i;
 	unsigned long *node;
 
-	node = cbtree_lookup_node(head, geo, key);
+	node = cbtree_lookup_node(head,head->node, geo, key,head->height);
 	if (!node)
 		return -ENOENT;
 
@@ -578,7 +578,7 @@ static void merge(struct cbtree_head *head, struct cbtree_geo *geo, int level,
 	////////////////////////// added code to free cache memory
 	////////////////////////// in this if statement allocated node really deleted
 	cache_ptr = right;
-	freeQueue((CircularQueue*)cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs]);
+	freeQueue((CircularQueue*)cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs],head,geo->keylen * geo->no_pairs + geo->no_longs);
 	//////////////////////////cache memory free
 
 	if(cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs + 1] == 0){
@@ -608,7 +608,7 @@ static void rebalance(struct cbtree_head *head, struct cbtree_geo *geo,
 		////////////////////////// added code to free cache memory
 		////////////////////////// in this if statement allocated node really deleted
 		cache_ptr = child;
-		freeQueue((CircularQueue*)cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs]);
+		freeQueue((CircularQueue*)cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs],head,geo->keylen * geo->no_pairs + geo->no_longs);
 		//////////////////////////cache memory free
 
 		if(cache_ptr[geo->keylen * geo->no_pairs + geo->no_longs + 1] == 0){
