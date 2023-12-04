@@ -561,7 +561,7 @@ static void merge(struct cbtree_head *head, struct cbtree_geo *geo, int level,
 		unsigned long *parent, int lpos)
 {
 	int i;
-	unsinged long *cache_ptr; 									// cache pointer
+	unsigned long *cache_ptr; 									// cache pointer
 
 	
 	for (i = 0; i < rfill; i++) {
