@@ -82,8 +82,10 @@ EXPORT_SYMBOL_GPL(cbtree_geo128);
 // static struct kmem_cache *cbtree_cachep;
 
 void *cbtree_alloc(gfp_t gfp_mask, void *pool_data)
-{
-	return kmem_cache_alloc(cbtree_cachep, gfp_mask);
+{	
+	printk("%d",cbtree_cachep);
+	return kmem_cache_alloc(cbtree_cachep, gfp_mask);	
+	printk("break");
 }
 EXPORT_SYMBOL_GPL(cbtree_alloc);
 
@@ -96,11 +98,19 @@ EXPORT_SYMBOL_GPL(cbtree_free);
 static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_geo* geo,gfp_t gfp)
 {
 	unsigned long *node;
-
+	printk("2-1-1");
+	printk("%d",cbtree_cachep);
 	node = mempool_alloc(head->mempool, gfp);
+	printk("2-1-2");
 	if (likely(node))
 		memset(node, 0, NODESIZE);
+	if (!node) {
+    	printk(KERN_ERR "mempool_alloc failed to allocate memory for node\n");
+    	return node;
+	}
+	printk("2-1-3");
 	initQueue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs]);
+	printk("2-1-4");
 	return node;
 }
 
@@ -193,8 +203,10 @@ EXPORT_SYMBOL_GPL(cbtree_init_mempool);
 int cbtree_init(struct cbtree_head *head)
 {
 	__cbtree_init(head);
+	printk("init done");
 	head->mempool = mempool_create(0, cbtree_alloc, cbtree_free, NULL);
 	if (!head->mempool)
+		printk("NULL returnd");
 		return -ENOMEM;
 	return 0;
 }
@@ -452,15 +464,18 @@ static int cbtree_grow(struct cbtree_head *head, struct cbtree_geo *geo,
 {
 	unsigned long *node;
 	int fill;
-
+	printk("2-1");
 	node = cbtree_node_alloc(head, geo, gfp);
+	printk("2-2");
 	if (!node)
 		return -ENOMEM;
 	if (head->node) {
+		printk("2-3");
 		fill = getfill(geo, head->node, 0);
 		setkey(geo, node, 0, bkey(geo, head->node, fill - 1));
 		setval(geo, node, 0, head->node);
 	}
+	printk("2-4");
 	head->node = node;
 	head->height++;
 	return 0;
@@ -489,21 +504,21 @@ static int cbtree_insert_level(struct cbtree_head *head, struct cbtree_geo *geo,
 {
 	unsigned long *node;
 	int i, pos, fill, err;
-
+	printk("2");
 	BUG_ON(!val);
 	if (head->height < level) {
 		err = cbtree_grow(head, geo, gfp);
 		if (err)
 			return err;
 	}
-
+	printk("3");
 retry:
 	node = find_level(head, geo, key, level);
 	pos = getpos(geo, node, key);
 	fill = getfill(geo, node, pos);
 	/* two identical keys are not allowed */
 	BUG_ON(pos < fill && keycmp(geo, node, pos, key) == 0);
-
+	printk("4");
 	if (fill == geo->no_pairs) {
 		/* need to split node */
 		unsigned long *new;
@@ -533,7 +548,7 @@ retry:
 		goto retry;
 	}
 	BUG_ON(fill >= geo->no_pairs);
-
+	printk("5");
 	/* shift and insert */
 	for (i = fill; i > pos; i--) {
 		setkey(geo, node, i, bkey(geo, node, i - 1));
@@ -549,6 +564,7 @@ int cbtree_insert(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key, void *val, gfp_t gfp)
 {
 	BUG_ON(!val);
+	printk("1");
 	return cbtree_insert_level(head, geo, key, val, 1, gfp);
 }
 EXPORT_SYMBOL_GPL(cbtree_insert);
@@ -851,27 +867,18 @@ size_t cbtree_grim_visitor(struct cbtree_head *head, struct cbtree_geo *geo,
 }
 EXPORT_SYMBOL_GPL(cbtree_grim_visitor);
 
-/*
-I don't know that tree variable created as a dynamic variable
-to use this funtion problem should be checked
-cbtree_head* create_tree(void){
-	cbtree_head tree;
-	cbtree_init(&tree);
-	return tree&
-}
-*/
 
-// static int __init cbtree_module_init(void)
-// {
+//static int __init cbtree_module_init(void)
+//{
 // 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
 // 			SLAB_HWCACHE_ALIGN, NULL);
-// 	return 0;
-// }
+//	return 0;
+//}
 
-// static void __exit cbtree_module_exit(void)
-// {
-// 	kmem_cache_destroy(cbtree_cachep);
-// }
+//static void __exit cbtree_module_exit(void)
+//{
+//	kmem_cache_destroy(cbtree_cachep);
+//}
 
 // /* If core code starts using cbtree, initialization should happen even earlier */
 // module_init(cbtree_module_init);

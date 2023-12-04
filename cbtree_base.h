@@ -203,7 +203,7 @@ size_t cbtree_grim_visitor(struct cbtree_head *head, struct cbtree_geo *geo,
 				       size_t index, void *func2),
 			  void *func2);
 
-static struct kmem_cache *cbtree_cachep;
+extern struct kmem_cache *cbtree_cachep;
 
 #include "cbtree-128.h"
 

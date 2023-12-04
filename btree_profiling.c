@@ -19,6 +19,8 @@ MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastr
 // Declare the B+ tree
 struct cbtree_head tree;
 
+struct kmem_cache *cbtree_cachep;
+
 // Initialize map that will keep track of keys in the btree
 unsigned long search_counts[TREE_SIZE] = {0};
 
@@ -56,7 +58,13 @@ void update_search_count(unsigned long key){
 */
 void insert_element(unsigned long key){
 	unsigned long temp_key[1] = {key}; 
-	cbtree_insert(&tree, &cbtree_geo32, temp_key, &insert_data, GFP_KERNEL);
+	unsigned long *val;
+	val = kmalloc(sizeof(*val), GFP_KERNEL);
+	if (!val) {
+		printk(KERN_ERR "error\n");
+	}
+	//unsigned long *val = (unsigned long *)kmalloc(sizeof(unsigned long), GFP_ATOMIC);
+	cbtree_insert(&tree, &cbtree_geo32, temp_key, val, GFP_KERNEL);
 }
 
 /**
@@ -119,10 +127,16 @@ static int __init bplus_module_init(void){
 
 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
 			SLAB_HWCACHE_ALIGN, NULL);
+	printk("%d",cbtree_cachep);
+	if(!cbtree_cachep)
+		printk("fail");
 	
-	// create_tree();
+	create_tree();
+	void * temp = kmem_cache_alloc(cbtree_cachep, GFP_ATOMIC);
+	//mempool_alloc(tree.mempool, GFP_ATOMIC);
+	//printk("%d",*(tree.mempool));
+	insert_element(1);
 	// fill_tree();
-	
 	return 0;
 }
 
@@ -142,7 +156,9 @@ static void __exit bplus_module_exit(void){
     // }
 	
 	// ktprint(2, cbtree_lookup_iter);
-	// cbtree_destroy(&tree);
+	find_element(1);
+	find_element(2);
+	cbtree_destroy(&tree);
 }
 
 module_init(bplus_module_init);
