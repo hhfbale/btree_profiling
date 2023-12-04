@@ -16,11 +16,6 @@ MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastr
 // Define the size of the tree
 #define TREE_SIZE 100
 
-// Define leaf node structure
-struct data_element {
-	unsigned long key;
-};
-
 // Declare the B+ tree
 struct cbtree_head tree;
 
@@ -60,9 +55,8 @@ void update_search_count(unsigned long key){
  * @key key corresponding to data_element
 */
 void insert_element(unsigned long key){
-
-	struct data_element insert_data = {.key = key};
-	cbtree_insert(&tree, &cbtree_geo32, &key, &insert_data, GFP_KERNEL);
+	unsigned long temp_key[1] = {key}; 
+	cbtree_insert(&tree, &cbtree_geo32, temp_key, &insert_data, GFP_KERNEL);
 }
 
 /**
@@ -84,9 +78,10 @@ void fill_tree(void){
 */
 struct data_element* find_element(unsigned long key){
 
+	unsigned long temp_key[1] = {key};
 	ktime_t localclock[2];
 	ktget(&localclock[0]);
-	struct data_element *result = cbtree_lookup(&tree, &cbtree_geo32, &key);
+	struct data_element *result = cbtree_lookup(&tree, &cbtree_geo32, temp_key);
 	ktget(&localclock[1]);
 	ktput(localclock, cbtree_lookup_iter);
 	
