@@ -3,7 +3,7 @@
 #include <linux/kernel.h>
 #include <linux/cache.h>
 #include <linux/slab.h>
-#include "cbtree_base.h"
+#include <linux/btree.h>
 #include <linux/pid.h>
 #include <linux/random.h>
 #include "calclock.h"
@@ -22,13 +22,13 @@ struct data_element {
 };
 
 // Declare the B+ tree
-struct cbtree_head tree;
+struct btree_head tree;
 
 // Initialize map that will keep track of keys in the btree
 unsigned long search_counts[TREE_SIZE] = {0};
 
 // Fetch tree geometry
-extern struct cbtree_geo cbtree_geo32;
+extern struct btree_geo btree_geo32;
 
 // Define profiling
 KTDEF(btree_lookup_iter);
@@ -38,10 +38,8 @@ KTDEF(btree_lookup_iter);
 */
 void create_tree(void){
 
-	cbtree_init(&tree);
+	btree_init(&tree);
 }
-
-KTDEF(cbtree_lookup_iter);
 
 /**
  * @brief help function to keep track of how many times each key in tree is searched
@@ -60,9 +58,14 @@ void update_search_count(unsigned long key){
  * @key key corresponding to data_element
 */
 void insert_element(unsigned long key){
-
 	struct data_element insert_data = {.key = key};
-	cbtree_insert(&tree, &cbtree_geo32, &key, &insert_data, GFP_KERNEL);
+	int error = btree_insert(&tree, &btree_geo32, &key, &insert_data, GFP_KERNEL);
+	if (error){
+		printk(KERN_INFO "Could not insert element");
+		return;
+	}
+	printk(KERN_INFO "Inserted key %lu in tree\n",key);
+
 }
 
 /**
@@ -86,10 +89,16 @@ struct data_element* find_element(unsigned long key){
 
 	ktime_t localclock[2];
 	ktget(&localclock[0]);
-	struct data_element *result = cbtree_lookup(&tree, &cbtree_geo32, &key);
+	struct data_element *result = btree_lookup(&tree, &btree_geo32, &key);
 	ktget(&localclock[1]);
-	ktput(localclock, cbtree_lookup_iter);
-	
+	ktput(localclock, btree_lookup_iter);
+
+	if (result) {
+		printk(KERN_INFO "Found element with key %lu\n", key);
+	} else {
+		printk(KERN_INFO "Element not found\n");
+	}
+
 	return result;
 }
 
@@ -123,15 +132,12 @@ static int __init bplus_module_init(void){
 	printk("Initializing bplus_module\n");
 	
 	create_tree();
-	fill_tree();
+	insert_element(2);
 	
 	return 0;
 }
 
 static void __exit bplus_module_exit(void){
-
-	kmem_cache_destroy(cbtree_cachep);
-
 	printk("Exiting bplus_module\n");
 	
 	// find_tree();
@@ -144,7 +150,7 @@ static void __exit bplus_module_exit(void){
     // }
 	
 	// ktprint(2, cbtree_lookup_iter);
-	cbtree_destroy(&tree);
+	btree_destroy(&tree);
 }
 
 module_init(bplus_module_init);
