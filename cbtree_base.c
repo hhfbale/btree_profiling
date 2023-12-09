@@ -82,8 +82,10 @@ EXPORT_SYMBOL_GPL(cbtree_geo128);
 // static struct kmem_cache *cbtree_cachep;
 
 void *cbtree_alloc(gfp_t gfp_mask, void *pool_data)
-{
-	return kmem_cache_alloc(cbtree_cachep, gfp_mask);
+{	
+	printk("%d",cbtree_cachep);
+	return kmem_cache_alloc(cbtree_cachep, gfp_mask);	
+	printk("break");
 }
 EXPORT_SYMBOL_GPL(cbtree_alloc);
 
@@ -97,6 +99,10 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_
 {
 	unsigned long *node;
 	printk("2-1-1");
+<<<<<<< HEAD
+=======
+	printk("%d",cbtree_cachep);
+>>>>>>> 914e0d89c6117404c6d5434a866e0a7c040a0c07
 	node = mempool_alloc(head->mempool, gfp);
 	printk("2-1-2");
 	if (likely(node))
@@ -105,7 +111,12 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_
     	printk(KERN_ERR "mempool_alloc failed to allocate memory for node\n");
     	return node;
 	}
+<<<<<<< HEAD
+=======
+	printk("2-1-3");
+>>>>>>> 914e0d89c6117404c6d5434a866e0a7c040a0c07
 	initQueue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs]);
+	printk("2-1-4");
 	return node;
 }
 
@@ -201,6 +212,7 @@ int cbtree_init(struct cbtree_head *head)
 	printk("init done");
 	head->mempool = mempool_create(0, cbtree_alloc, cbtree_free, NULL);
 	if (!head->mempool)
+		printk("NULL returnd");
 		return -ENOMEM;
 	return 0;
 }
@@ -861,27 +873,18 @@ size_t cbtree_grim_visitor(struct cbtree_head *head, struct cbtree_geo *geo,
 }
 EXPORT_SYMBOL_GPL(cbtree_grim_visitor);
 
-/*
-I don't know that tree variable created as a dynamic variable
-to use this funtion problem should be checked
-cbtree_head* create_tree(void){
-	cbtree_head tree;
-	cbtree_init(&tree);
-	return tree&
-}
-*/
 
-// static int __init cbtree_module_init(void)
-// {
+//static int __init cbtree_module_init(void)
+//{
 // 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
 // 			SLAB_HWCACHE_ALIGN, NULL);
-// 	return 0;
-// }
+//	return 0;
+//}
 
-// static void __exit cbtree_module_exit(void)
-// {
-// 	kmem_cache_destroy(cbtree_cachep);
-// }
+//static void __exit cbtree_module_exit(void)
+//{
+//	kmem_cache_destroy(cbtree_cachep);
+//}
 
 // /* If core code starts using cbtree, initialization should happen even earlier */
 // module_init(cbtree_module_init);

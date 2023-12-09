@@ -21,6 +21,8 @@ struct kmem_cache *cbtree_cachep;
 // Declare the B+ tree
 struct cbtree_head tree;
 
+struct kmem_cache *cbtree_cachep;
+
 // Initialize map that will keep track of keys in the btree
 unsigned long search_counts[TREE_SIZE] = {0};
 
@@ -127,11 +129,19 @@ static int __init bplus_module_init(void){
 
 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
 			SLAB_HWCACHE_ALIGN, NULL);
+	printk("%d",cbtree_cachep);
+	if(!cbtree_cachep)
+		printk("fail");
 	
 	create_tree();
+<<<<<<< HEAD
+=======
+	void * temp = kmem_cache_alloc(cbtree_cachep, GFP_ATOMIC);
+	//mempool_alloc(tree.mempool, GFP_ATOMIC);
+	//printk("%d",*(tree.mempool));
+>>>>>>> 914e0d89c6117404c6d5434a866e0a7c040a0c07
 	insert_element(1);
 	// fill_tree();
-	
 	return 0;
 }
 
