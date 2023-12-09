@@ -42,8 +42,10 @@ void initQueue(void* nodep) {
     printk("%d", q->head);
 }
 
-void setcache(CircularQueue* q,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
-	Node* curr = q->head;
+void setcache(void* nodep,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
+	CircularQueue* q = (CircularQueue*)nodep;
+    Node* curr = q->head;
+    
 	if(curr != NULL){
 		if(curr->node[arr_len + 1] == 1 && curr->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
 			mempool_free(curr->node, head->mempool);
@@ -70,7 +72,8 @@ void setNodekey(CircularQueue* q, unsigned long * key, unsigned long * c_key, in
 }
 */
 
-void* getNodeValue(CircularQueue* q) {
+void* getNodeValue(void* nodep) {
+    CircularQueue* q = (CircularQueue*)nodep;
     Node* curr = q->head;
     return curr->node;
 }
@@ -87,7 +90,9 @@ static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t
 	return 0;
 }
 
-void* findNode(CircularQueue* q, unsigned long* key, struct cbtree_head *head, int arr_len) {
+void* findNode(void* nodep, unsigned long* key, struct cbtree_head *head, int arr_len) {
+    CircularQueue* q = (CircularQueue*)nodep;
+    
     Node *curr = q->head;
 
     Node *first = curr;
@@ -107,9 +112,11 @@ void* findNode(CircularQueue* q, unsigned long* key, struct cbtree_head *head, i
     return NULL;
 }
 
-void freeQueue(CircularQueue* q,struct cbtree_head *head, int arr_len) { //arr_len is the length of orignal node
+void freeQueue(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is the length of orignal node
+    CircularQueue* q = (CircularQueue*)nodep;
+    
     Node *curr = q->head;
-
+    
     if (!curr) {
         return;
     }
