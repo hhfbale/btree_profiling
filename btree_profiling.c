@@ -88,13 +88,13 @@ void fill_tree(void){
 */
 struct data_element* find_element(unsigned long key){
 
+	printk("to serch %d",key);
 	unsigned long temp_key[1] = {key};
 	ktime_t localclock[2];
 	ktget(&localclock[0]);
 	struct data_element *result = cbtree_lookup(&tree, &cbtree_geo32, temp_key);
 	ktget(&localclock[1]);
 	ktput(localclock, cbtree_lookup_iter);
-	
 	return result;
 }
 
@@ -137,7 +137,32 @@ static int __init bplus_module_init(void){
 	void * temp = kmem_cache_alloc(cbtree_cachep, GFP_ATOMIC);
 	//mempool_alloc(tree.mempool, GFP_ATOMIC);
 	//printk("%d",*(tree.mempool));
+	int i = 0;
+	
+	for(i = 0;i < 100; i++){
+		insert_element(i);
+	}
+	/*
+	for(i = 0;i < 30; i++){
+		printk("loop %d",i);
+		find_element(i);
+	}
+	*/
+
+	for (i = 0; i < 1000; i++) {
+        unsigned int random_number;
+        get_random_bytes(&random_number, sizeof(random_number));
+        random_number = random_number % 100 + 1;  // 1에서 100 사이의 숫자로 변환
+
+        printk("\n\n\n\n\nloop %d, finding element: %d\n", i, random_number);
+        find_element(random_number);
+    }
+
+	/*
 	insert_element(1);
+	insert_element(2);
+	insert_element(3);
+	*/
 	// fill_tree();
 	return 0;
 }
@@ -148,8 +173,14 @@ static void __exit bplus_module_exit(void){
 
 	printk("Exiting bplus_module\n");
 	
-	// find_tree();
-	
+	/*
+	find_element(1);
+	find_element(2);
+	find_element(3);
+	find_element(1);
+	find_element(2);
+	find_element(3);
+	*/
 	// unsigned long i;
 	// for (i = 0; i < TREE_SIZE; i++){
 	// 	if (search_counts[i]){
@@ -158,8 +189,6 @@ static void __exit bplus_module_exit(void){
     // }
 	
 	// ktprint(2, cbtree_lookup_iter);
-	find_element(1);
-	find_element(2);
 	cbtree_destroy(&tree);
 }
 
