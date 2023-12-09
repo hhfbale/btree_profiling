@@ -98,20 +98,20 @@ EXPORT_SYMBOL_GPL(cbtree_free);
 static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_geo* geo,gfp_t gfp)
 {
 	unsigned long *node;
-	printk("2-1-1");
-	printk("%p",&cbtree_cachep);
+	//printk("2-1-1");
+	printk("%d",cbtree_cachep);
 	node = mempool_alloc(head->mempool, gfp);
-	printk("2-1-2");
+	//printk("2-1-2");
 	if (likely(node))
 		memset(node, 0, NODESIZE);
 	if (!node) {
     	printk(KERN_ERR "mempool_alloc failed to allocate memory for node\n");
     	return node;
 	}
-	printk("2-1-3");
+	//printk("2-1-3");
 	initQueue(&node[geo->keylen * geo->no_pairs + geo->no_longs]);
 	printk("%d",node[geo->keylen * geo->no_pairs + geo->no_longs]);
-	printk("2-1-4");
+	//printk("2-1-4");
 	return node;
 }
 
@@ -276,7 +276,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	if(height <= 1){
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) == 0){
-				printk("find by using original search %d", key[0]);
+				printk("\n\n\n\n\nfind by using original search %d\n\n\n\n\n", key[0]);
 				printk("end point 2");
 				return node;
 			}
@@ -285,10 +285,9 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	}
 	for(j = 0 ; j < 4;j++ ){
 			temp_n = findNode(&node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
-			printk("cache find result %d",temp_n);
 	}
 	if(temp_n != NULL){
-		printk("find by using cache %d", key[0]);
+		printk("\n\n\n\n\n\nfind by using cache %d\n\n\n\n\n\n", key[0]);
 		printk("end point 4");
 		return temp_n;
 	}
@@ -321,8 +320,10 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	height -= 1;
 	printk("level change %d\n",height);
 	node = cbtree_lookup_node(head, node, geo, key, height);
+	printk("return to level %d", height++);
 	if(node != NULL){
-		printk("%d", node[geo->keylen * geo->no_pairs + geo->no_longs]);
+		printk("node value %d", node[geo->keylen * geo->no_pairs + geo->no_longs]);
+
 		setcache(&node[geo->keylen * geo->no_pairs + geo->no_longs], head, node, key, geo->keylen * geo->no_pairs + geo->no_longs, geo->keylen);
 	
 	}
@@ -356,12 +357,20 @@ void *cbtree_lookup(struct cbtree_head *head, struct cbtree_geo *geo,
 	
 	node = head->node;
 	node = cbtree_lookup_node(head, node, geo, key, head->height);
-	if (!node)
+	if (!node){
 		return NULL;
-
+		for (i = 0; i < geo->no_pairs; i++)
+			printk("returned value : %d",bval(geo, node, i));
+		printk("\n\n\n\n");
+	}
+	else return node;
+		/*
 	for (i = 0; i < geo->no_pairs; i++)
-		if (keycmp(geo, node, i, key) == 0)
+		if (keycmp(geo, node, i, key) == 0){
+			printk("\n\nfind by original way : %d\n\n",key[0]);
 			return bval(geo, node, i);
+		}
+	*/		
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(cbtree_lookup);
@@ -500,18 +509,18 @@ static int cbtree_grow(struct cbtree_head *head, struct cbtree_geo *geo,
 {
 	unsigned long *node;
 	int fill;
-	printk("2-1");
+	//printk("2-1");
 	node = cbtree_node_alloc(head, geo, gfp);
-	printk("2-2");
+	//printk("2-2");
 	if (!node)
 		return -ENOMEM;
 	if (head->node) {
-		printk("2-3");
+		//printk("2-3");
 		fill = getfill(geo, head->node, 0);
 		setkey(geo, node, 0, bkey(geo, head->node, fill - 1));
 		setval(geo, node, 0, head->node);
 	}
-	printk("2-4");
+	//printk("2-4");
 	head->node = node;
 	head->height++;
 	return 0;
@@ -540,21 +549,21 @@ static int cbtree_insert_level(struct cbtree_head *head, struct cbtree_geo *geo,
 {
 	unsigned long *node;
 	int i, pos, fill, err;
-	printk("2");
+	//printk("2");
 	BUG_ON(!val);
 	if (head->height < level) {
 		err = cbtree_grow(head, geo, gfp);
 		if (err)
 			return err;
 	}
-	printk("3");
+	//printk("3");
 retry:
 	node = find_level(head, geo, key, level);
 	pos = getpos(geo, node, key);
 	fill = getfill(geo, node, pos);
 	/* two identical keys are not allowed */
 	BUG_ON(pos < fill && keycmp(geo, node, pos, key) == 0);
-	printk("4");
+	//printk("4");
 	if (fill == geo->no_pairs) {
 		/* need to split node */
 		unsigned long *new;
@@ -585,7 +594,7 @@ retry:
 		goto retry;
 	}
 	BUG_ON(fill >= geo->no_pairs);
-	printk("5");
+	//printk("5");
 	/* shift and insert */
 	for (i = fill; i > pos; i--) {
 		setkey(geo, node, i, bkey(geo, node, i - 1));

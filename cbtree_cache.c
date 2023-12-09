@@ -9,7 +9,7 @@ void initQueue(void* nodep) {
     int i; 
     for (i = 0; i < 4; i++) {
         curr = kmalloc(sizeof(Node), GFP_KERNEL);
-	
+        printk("\nnew cache node created %p\n",curr);
 	//check malloc error
         if (!curr) {
             printk(KERN_ERR "Memory allocation failed for node %d\n", i);
@@ -35,10 +35,11 @@ void initQueue(void* nodep) {
 
         previous = curr;
     }
-    printk("%d",first);
     curr->next = first;
     q->head = first;
     ((unsigned long*)nodep)[0] = (unsigned long)q;
+    printk("strat cache node of queue : %p",q->head);
+    printk("strat cache node of queue : %p",((unsigned long*)nodep)[0]);
     printk("*nodep %d", ((unsigned long*)nodep)[0] );
     printk("q %d", q);
     printk("q-head %d", q->head);
@@ -49,8 +50,8 @@ void setcache(void* nodep,struct cbtree_head *head, unsigned long * node, unsign
     CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
     printk("setcache get %d", nodep);
     Node* curr = q->head;
-    printk("set cache call %d",curr->node);
-	if(curr != NULL){
+    //printk("set cache call %d",curr->node);
+	if(curr->node != NULL){
 		if(curr->node[1] == 1 && curr->node[2] == 1){ //if this cache is last one witch save that node and node already deleted
 			mempool_free(curr->node, head->mempool);
 		}
@@ -117,7 +118,7 @@ void* findNode(void* nodep, unsigned long* key, struct cbtree_head *head, int ar
             return curr->node;
         }
         q->head = curr->next;
-    }
+        }
     }
     /*
     for(i = 0; i < 4;i++){

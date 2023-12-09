@@ -142,11 +142,21 @@ static int __init bplus_module_init(void){
 	for(i = 0;i < 100; i++){
 		insert_element(i);
 	}
-	for(i = 0;i < 100; i++){
+	/*
+	for(i = 0;i < 30; i++){
 		printk("loop %d",i);
 		find_element(i);
 	}
-	
+	*/
+
+	for (i = 0; i < 1000; i++) {
+        unsigned int random_number;
+        get_random_bytes(&random_number, sizeof(random_number));
+        random_number = random_number % 100 + 1;  // 1에서 100 사이의 숫자로 변환
+
+        printk("\n\n\n\n\nloop %d, finding element: %d\n", i, random_number);
+        find_element(random_number);
+    }
 
 	/*
 	insert_element(1);
