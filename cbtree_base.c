@@ -276,16 +276,19 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	if(height <= 1){
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) == 0){
-				printk("\n\n\n\n\nfind by using original search %d\n\n\n\n\n", key[0]);
+				printk("\n\n\n\n\nfind by using original search %d %d\n\n\n\n\n", key[0]);
 				printk("end point 2");
 				return node;
 			}
 		printk("end point 3");
 		return NULL;
 	}
-	for(j = 0 ; j < 4;j++ ){
-			temp_n = findNode(&node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
-	}
+
+	printk("node's key value before findNode %p pinter %d key----------", ((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head,\
+	((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head->key[0]);
+
+	temp_n = findNode(&node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
+	
 	if(temp_n != NULL){
 		printk("\n\n\n\n\n\nfind by using cache %d\n\n\n\n\n\n", key[0]);
 		printk("end point 4");
@@ -298,6 +301,9 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	if (i == geo->no_pairs)
 		return NULL;
 	printk("end point 5");
+
+	temp_n = node;// to save this level node address
+
 	node = bval(geo, node, i);
 	printk("node = %d",node);
 	printk("node address %d",&node);
@@ -320,12 +326,10 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	height -= 1;
 	printk("level change %d\n",height);
 	node = cbtree_lookup_node(head, node, geo, key, height);
-	printk("return to level %d", height++);
+	printk("return to level %d key is %d-----------", height++, key[0]);
 	if(node != NULL){
-		printk("node value %d", node[geo->keylen * geo->no_pairs + geo->no_longs]);
-
-		setcache(&node[geo->keylen * geo->no_pairs + geo->no_longs], head, node, key, geo->keylen * geo->no_pairs + geo->no_longs, geo->keylen);
-	
+		setcache(node, head, temp_n, key, geo->keylen * geo->no_pairs + geo->no_longs, geo->keylen);
+		printk("node's key value %d", ((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head->key[0]);
 	}
 	/*
 	for ( ; height > 1; height--) {

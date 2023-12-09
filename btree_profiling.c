@@ -88,7 +88,7 @@ void fill_tree(void){
 */
 struct data_element* find_element(unsigned long key){
 
-	printk("to serch %d",key);
+	printk("to search %d",key);
 	unsigned long temp_key[1] = {key};
 	ktime_t localclock[2];
 	ktget(&localclock[0]);
@@ -149,15 +149,21 @@ static int __init bplus_module_init(void){
 	}
 	*/
 
+	int k = 0;
+	/*
 	for (i = 0; i < 1000; i++) {
         unsigned int random_number;
         get_random_bytes(&random_number, sizeof(random_number));
         random_number = random_number % 100 + 1;  // 1에서 100 사이의 숫자로 변환
 
         printk("\n\n\n\n\nloop %d, finding element: %d\n", i, random_number);
-        find_element(random_number);
+        //find_element(random_number);
+		
     }
-
+	*/
+	for(k = 0; k < 100;k++){
+		find_element(1);
+	}
 	/*
 	insert_element(1);
 	insert_element(2);

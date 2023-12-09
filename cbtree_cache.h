@@ -14,7 +14,7 @@ typedef struct {
 
 void initQueue(void * q);
 
-void setcache(void *  q,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len);
+void setcache(unsigned long *  q,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len);
 
 void* getNodeValue(void *  q);
 

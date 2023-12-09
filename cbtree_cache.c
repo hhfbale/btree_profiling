@@ -24,7 +24,8 @@ void initQueue(void* nodep) {
 
         curr->node = NULL;  
         curr->next = NULL;
-        curr->key = kmalloc(sizeof(unsigned long)*2, GFP_KERNEL);
+        curr->key = kmalloc(sizeof(unsigned long) * 2, GFP_KERNEL);
+
 		
 
         if (i == 0) {
@@ -45,12 +46,24 @@ void initQueue(void* nodep) {
     printk("q-head %d", q->head);
 }
 
-void setcache(void* nodep,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
+void setcache(unsigned long* leaf_node,struct cbtree_head *head, unsigned long * call_node, unsigned long * key, int arr_len, int key_len) {
 	//CircularQueue* q = (CircularQueue*)*nodep;
-    CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
-    printk("setcache get %d", nodep);
-    Node* curr = q->head;
+    CircularQueue* call_node_queue = (CircularQueue*)((unsigned long*)call_node)[arr_len];
+    //CircularQueue* q = (CircularQueue*)((unsigned long*)call_node_queue)[0];
+    printk("setcache get %p", leaf_node);
+    //Node* curr = q->head;
     //printk("set cache call %d",curr->node);
+    if(call_node_queue->head->node != NULL){
+        if(call_node_queue->head->node[arr_len + 1] == 1 && call_node_queue->head->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
+            freeQueue(call_node_queue->head->node,head,arr_len);
+            //mempool_free(call_node_queue->head->node, head->mempool);
+		}
+        else{
+			call_node_queue->head->node[arr_len + 1] -= 1;
+		}
+    }
+    leaf_node[arr_len+1] += 1;
+    /*
 	if(curr->node != NULL){
 		if(curr->node[1] == 1 && curr->node[2] == 1){ //if this cache is last one witch save that node and node already deleted
 			mempool_free(curr->node, head->mempool);
@@ -59,13 +72,17 @@ void setcache(void* nodep,struct cbtree_head *head, unsigned long * node, unsign
 			curr->node[1] -= 1;
 		}
 	}
-	curr->node = node;
-	curr->node[1] += 1;
-
+    */
+    
+	call_node_queue->head->node = leaf_node;
+	//call_node_queue->head->node[1] += 1;
+    printk("node added to %p",call_node_queue->head->node);
     int i;
 	for(i = 0;i <key_len; i++ ){
-		curr->key[i] = key[i];
+         printk(" curr->key %d' changed to %d key",call_node_queue->head->key[i],key[i]);
+		call_node_queue->head->key[i] = key[i];
     }
+    call_node_queue->head = call_node_queue->head->next;
 }
 
 //change node key
@@ -102,23 +119,24 @@ void* findNode(void* nodep, unsigned long* key, struct cbtree_head *head, int ar
     printk("findNode %d", nodep);
     Node *curr = q->head;
     printk("find cache call curr %d",curr);
-    printk("find cache call curr->node %d",curr->node);
-    Node *first = curr;
+    printk("find cache call curr->next %d",curr->next);
     
     int i;
-    if(curr->node != NULL){
-        for(i = 0; i < 4;i++){
-        printk("%d",i);
-		if(curr->node[2] == 1){
-            printk("if called");
-			mempool_free(curr->node, head->mempool);
-		}
-        else if(cachelongcmp(key, curr->key,arr_len)){
-            printk("else if called");
-            return curr->node;
+    for(i = 0; i < 4;i++){
+        if(curr->node != NULL){
+            printk("search cache queue %d elememt-----------------",i);
+		    if(curr->node[arr_len + 2] == 1){
+		    }
+            else if(cachelongcmp(key, curr->key,arr_len)){
+                printk("else if called");
+                return curr->node;
+            }
+            //curr = curr->next;
+            //printk("find cache call curr->next %d",curr->next);
         }
-        q->head = curr->next;
-        }
+        curr = curr->next;
+        printk("find cache call curr->next %d and value %d: ",curr->next, curr->key[0]);
+
     }
     /*
     for(i = 0; i < 4;i++){
@@ -135,7 +153,7 @@ void* findNode(void* nodep, unsigned long* key, struct cbtree_head *head, int ar
     }
     */
     //there is no target, move curr position to the next of start point and NULL return
-    curr = curr->next;
+    q->head = q->head->next;
     return NULL;
 }
 
@@ -154,8 +172,9 @@ void freeQueue(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is
         Node *temp = curr;
         curr = curr->next;
 		if(curr != NULL){
-			if(curr->node[1] == 1 && curr->node[2] == 1){ //if this cache is last one witch save that node and node already deleted
-				mempool_free(curr->node, head->mempool);
+			if(curr->node[arr_len+1] <= 1 && curr->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
+				freeQueue(curr->node[arr_len],head,arr_len);
+                mempool_free(curr->node, head->mempool);
 			}
 			else{
 				curr->node[1] -= 1;
@@ -164,4 +183,5 @@ void freeQueue(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is
         kfree(temp->key);
         kfree(temp);
     } while (curr != first);
+    kfree(q);
 }
