@@ -110,6 +110,7 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_
 	}
 	printk("2-1-3");
 	initQueue(&node[geo->keylen * geo->no_pairs + geo->no_longs]);
+	printk("%d",node[geo->keylen * geo->no_pairs + geo->no_longs]);
 	printk("2-1-4");
 	return node;
 }
