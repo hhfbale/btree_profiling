@@ -139,10 +139,10 @@ static int __init bplus_module_init(void){
 	//printk("%d",*(tree.mempool));
 	int i = 0;
 	
-	for(i = 0;i < 100; i++){
+	for(i = 0;i < 30; i++){
 		insert_element(i);
 	}
-	for(i = 0;i < 100; i++){
+	for(i = 0;i < 30; i++){
 		printk("loop %d",i);
 		find_element(i);
 	}
