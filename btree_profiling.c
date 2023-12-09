@@ -94,7 +94,6 @@ struct data_element* find_element(unsigned long key){
 	struct data_element *result = cbtree_lookup(&tree, &cbtree_geo32, temp_key);
 	ktget(&localclock[1]);
 	ktput(localclock, cbtree_lookup_iter);
-	
 	return result;
 }
 
@@ -137,7 +136,21 @@ static int __init bplus_module_init(void){
 	void * temp = kmem_cache_alloc(cbtree_cachep, GFP_ATOMIC);
 	//mempool_alloc(tree.mempool, GFP_ATOMIC);
 	//printk("%d",*(tree.mempool));
+	int i = 0;
+	
+	for(i = 0;i < 100; i++){
+		insert_element(i);
+	}
+	for(i = 0;i < 100; i++){
+		find_element(i);
+	}
+	
+
+	/*
 	insert_element(1);
+	insert_element(2);
+	insert_element(3);
+	*/
 	// fill_tree();
 	return 0;
 }
@@ -148,8 +161,14 @@ static void __exit bplus_module_exit(void){
 
 	printk("Exiting bplus_module\n");
 	
-	// find_tree();
-	
+	/*
+	find_element(1);
+	find_element(2);
+	find_element(3);
+	find_element(1);
+	find_element(2);
+	find_element(3);
+	*/
 	// unsigned long i;
 	// for (i = 0; i < TREE_SIZE; i++){
 	// 	if (search_counts[i]){
@@ -158,8 +177,6 @@ static void __exit bplus_module_exit(void){
     // }
 	
 	// ktprint(2, cbtree_lookup_iter);
-	find_element(1);
-	find_element(2);
 	cbtree_destroy(&tree);
 }
 
