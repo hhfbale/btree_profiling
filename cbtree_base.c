@@ -98,8 +98,8 @@ EXPORT_SYMBOL_GPL(cbtree_free);
 static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_geo* geo,gfp_t gfp)
 {
 	unsigned long *node;
-	//printk("2-1-1");
-	printk("%d",cbtree_cachep);
+	printk("2-1-1");
+	printk("%p",&cbtree_cachep);
 	node = mempool_alloc(head->mempool, gfp);
 	//printk("2-1-2");
 	if (likely(node))
