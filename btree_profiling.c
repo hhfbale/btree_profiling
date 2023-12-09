@@ -134,12 +134,9 @@ static int __init bplus_module_init(void){
 		printk("fail");
 	
 	create_tree();
-<<<<<<< HEAD
-=======
 	void * temp = kmem_cache_alloc(cbtree_cachep, GFP_ATOMIC);
 	//mempool_alloc(tree.mempool, GFP_ATOMIC);
 	//printk("%d",*(tree.mempool));
->>>>>>> 914e0d89c6117404c6d5434a866e0a7c040a0c07
 	insert_element(1);
 	// fill_tree();
 	return 0;

@@ -1,9 +1,11 @@
 #include "cbtree_cache.h"
 
-void initQueue(CircularQueue* q) {
+void initQueue(void* nodep) {
     Node *curr, *previous = NULL;
     Node *first = NULL;
-
+    printk("%d", nodep);
+    CircularQueue* q = (CircularQueue*)nodep;
+    q = kmalloc(sizeof(CircularQueue), GFP_KERNEL);
     int i; 
     for (i = 0; i < 4; i++) {
         curr = kmalloc(sizeof(Node), GFP_KERNEL);
@@ -36,6 +38,8 @@ void initQueue(CircularQueue* q) {
 
     curr->next = first;
     q->head = first;
+    printk("%d", q);
+    printk("%d", q->head);
 }
 
 void setcache(CircularQueue* q,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {

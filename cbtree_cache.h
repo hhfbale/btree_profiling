@@ -12,7 +12,7 @@ typedef struct {
     Node* head;
 } CircularQueue;
 
-void initQueue(CircularQueue* q);
+void initQueue(void * q);
 
 void setcache(CircularQueue* q,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len);
 

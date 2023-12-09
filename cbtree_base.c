@@ -99,10 +99,7 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_
 {
 	unsigned long *node;
 	printk("2-1-1");
-<<<<<<< HEAD
-=======
 	printk("%d",cbtree_cachep);
->>>>>>> 914e0d89c6117404c6d5434a866e0a7c040a0c07
 	node = mempool_alloc(head->mempool, gfp);
 	printk("2-1-2");
 	if (likely(node))
@@ -111,10 +108,7 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_
     	printk(KERN_ERR "mempool_alloc failed to allocate memory for node\n");
     	return node;
 	}
-<<<<<<< HEAD
-=======
 	printk("2-1-3");
->>>>>>> 914e0d89c6117404c6d5434a866e0a7c040a0c07
 	initQueue((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs]);
 	printk("2-1-4");
 	return node;
