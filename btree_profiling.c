@@ -88,6 +88,7 @@ void fill_tree(void){
 */
 struct data_element* find_element(unsigned long key){
 
+	printk("to serch %d",key);
 	unsigned long temp_key[1] = {key};
 	ktime_t localclock[2];
 	ktget(&localclock[0]);
@@ -142,6 +143,7 @@ static int __init bplus_module_init(void){
 		insert_element(i);
 	}
 	for(i = 0;i < 100; i++){
+		printk("loop %d",i);
 		find_element(i);
 	}
 	

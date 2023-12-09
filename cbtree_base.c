@@ -264,36 +264,50 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	unsigned long *node = h_node;
 	unsigned long *temp_n = NULL;
 
-	if (height == 0)
+	if (height == 0){
+		printk("end point 1");
 		return NULL;
+	}
 	
+	printk("now level %d finding key %d",height, key[0]);
+
 	///changed code to recersive funtion
 	int j;
 	if(height <= 1){
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) == 0){
 				printk("find by using original search %d", key[0]);
+				printk("end point 2");
 				return node;
 			}
+		printk("end point 3");
 		return NULL;
 	}
 	for(j = 0 ; j < 4;j++ ){
 			temp_n = findNode(&node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
+			printk("cache find result %d",temp_n);
 	}
-	if(temp_n != NULL)
+	if(temp_n != NULL){
 		printk("find by using cache %d", key[0]);
+		printk("end point 4");
 		return temp_n;
+	}
 	for (i = 0; i < geo->no_pairs; i++)
 		if (keycmp(geo, node, i, key) <= 0)
 			break;
 	printk("i = %d no_pairs %d",i,geo->no_pairs);
 	if (i == geo->no_pairs)
 		return NULL;
+	printk("end point 5");
 	node = bval(geo, node, i);
 	printk("node = %d",node);
 	printk("node address %d",&node);
-	if (!node)
+	if (!node){
+
+		printk("end point 6");
 		return NULL;
+	}
+		
 	/*
 	if(height <= 1){
 		for (i = 0; i < geo->no_pairs; i++)
@@ -304,7 +318,9 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 		return NULL;
 	}
 	*/
-	node = cbtree_lookup_node(head, node, geo, key, height - 1);
+	height -= 1;
+	printk("level change %d\n",height);
+	node = cbtree_lookup_node(head, node, geo, key, height);
 	if(node != NULL){
 		printk("%d", node[geo->keylen * geo->no_pairs + geo->no_longs]);
 		setcache(&node[geo->keylen * geo->no_pairs + geo->no_longs], head, node, key, geo->keylen * geo->no_pairs + geo->no_longs, geo->keylen);
@@ -328,6 +344,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 			return NULL;
 	}
  	*/
+	printk("end point 7");
 	return node;
 }
 
