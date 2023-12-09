@@ -3,7 +3,7 @@
 void initQueue(void* nodep) {
     Node *curr, *previous = NULL;
     Node *first = NULL;
-    printk("%d", nodep);
+    printk("%p", &nodep);
     CircularQueue* q = (CircularQueue*)nodep;
     q = kmalloc(sizeof(CircularQueue), GFP_KERNEL);
     int i; 
@@ -38,8 +38,8 @@ void initQueue(void* nodep) {
 
     curr->next = first;
     q->head = first;
-    printk("%d", q);
-    printk("%d", q->head);
+    printk("%p", &q);
+    printk("%p", &q->head);
 }
 
 void setcache(void* nodep,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
@@ -58,7 +58,7 @@ void setcache(void* nodep,struct cbtree_head *head, unsigned long * node, unsign
 	curr->node[arr_len + 1] += 1;
 
     int i;
-	for(i = 0;i++ ;i <key_len){
+	for(i = 0; i < key_len; i++){
 		curr->key[i] = key[i];
     }
 }

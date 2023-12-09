@@ -129,7 +129,7 @@ static int __init bplus_module_init(void){
 
 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
 			SLAB_HWCACHE_ALIGN, NULL);
-	printk("%d",cbtree_cachep);
+	printk("%p",&cbtree_cachep);
 	if(!cbtree_cachep)
 		printk("fail");
 	
