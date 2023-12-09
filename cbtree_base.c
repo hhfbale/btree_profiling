@@ -83,7 +83,7 @@ EXPORT_SYMBOL_GPL(cbtree_geo128);
 
 void *cbtree_alloc(gfp_t gfp_mask, void *pool_data)
 {	
-	printk("%d",cbtree_cachep);
+	printk("%p",&cbtree_cachep);
 	return kmem_cache_alloc(cbtree_cachep, gfp_mask);	
 	printk("break");
 }
@@ -98,8 +98,8 @@ EXPORT_SYMBOL_GPL(cbtree_free);
 static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_geo* geo,gfp_t gfp)
 {
 	unsigned long *node;
-	//printk("2-1-1");
-	printk("%d",cbtree_cachep);
+	printk("2-1-1");
+	printk("%p",&cbtree_cachep);
 	node = mempool_alloc(head->mempool, gfp);
 	//printk("2-1-2");
 	if (likely(node))
