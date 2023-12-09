@@ -276,7 +276,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	if(height <= 1){
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) == 0){
-				printk("find by using original search %d", key[0]);
+				printk("\n\n\n\n\nfind by using original search %d\n\n\n\n\n", key[0]);
 				printk("end point 2");
 				return node;
 			}
@@ -287,7 +287,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 			temp_n = findNode(&node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
 	}
 	if(temp_n != NULL){
-		printk("\n\nfind by using cache %d\n\n", key[0]);
+		printk("\n\n\n\n\n\nfind by using cache %d\n\n\n\n\n\n", key[0]);
 		printk("end point 4");
 		return temp_n;
 	}
