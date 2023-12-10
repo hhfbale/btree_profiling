@@ -1,16 +1,14 @@
 #include "cbtree_cache.h"
 
-void initQueue(void* nodep) {
+void initLinkedList(void* nodep) {
     Node *curr, *previous = NULL;
     Node *first = NULL;
-    CircularQueue* q = kmalloc(sizeof(CircularQueue), GFP_KERNEL);
+    LinkedList* ll = kmalloc(sizeof(LinkedList), GFP_KERNEL);
     int i; 
     for (i = 0; i < 4; i++) {
         curr = kmalloc(sizeof(Node), GFP_KERNEL);
-	    
-        //check malloc error
+	//check malloc error
         if (!curr) {
-            printk(KERN_ERR "Memory allocation failed for node %d\n", i);
             curr = first;
             while (curr) {
                 Node *temp = curr->next;
@@ -22,8 +20,7 @@ void initQueue(void* nodep) {
 
         curr->node = NULL;  
         curr->next = NULL;
-        curr->key = kmalloc(sizeof(unsigned long)*2, GFP_KERNEL);
-		
+        curr->key = kmalloc(sizeof(unsigned long) * 2, GFP_KERNEL);
 
         if (i == 0) {
             first = curr;
@@ -34,37 +31,33 @@ void initQueue(void* nodep) {
         previous = curr;
     }
     curr->next = first;
-    q->head = first;
-    ((unsigned long*)nodep)[0] = (unsigned long)q;
+    ll->head = first;
+    ((unsigned long*)nodep)[0] = (unsigned long)ll;
 }
 
-void setcache(void* nodep,struct cbtree_head *head, unsigned long * node, unsigned long * key, int arr_len, int key_len) {
-
-    CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
-    Node* curr = q->head;
-
-	if(curr->node != NULL){
-		if(curr->node[1] == 1 && curr->node[2] == 1){ //if this cache is last one witch save that node and node already deleted
-			mempool_free(curr->node, head->mempool);
+void setcache(unsigned long* leaf_node,struct cbtree_head *head, unsigned long * call_node, unsigned long * key, int arr_len, int key_len) {
+    LinkedList* call_node_linkedlist = (LinkedList*)((unsigned long*)call_node)[arr_len];
+    if(call_node_linkedlist->head->node != NULL){
+        if(call_node_linkedlist->head->node[arr_len + 1] == 1 && call_node_linkedlist->head->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
+            freelinkedlist(call_node_linkedlist->head->node,head,arr_len);
+            //mempool_free(call_node_linkedlist->head->node, head->mempool);
 		}
-		else{
-			curr->node[1] -= 1;
+        else{
+			call_node_linkedlist->head->node[arr_len + 1] -= 1;
 		}
-	}
-	curr->node = node;
-	curr->node[1] += 1;
-
+    }
+    leaf_node[arr_len+1] += 1;
+    
+	call_node_linkedlist->head->node = leaf_node;
     int i;
 	for(i = 0;i <key_len; i++ ){
-		curr->key[i] = key[i];
+		call_node_linkedlist->head->key[i] = key[i];
     }
+    call_node_linkedlist->head = call_node_linkedlist->head->next;
 }
-
-
 void* getNodeValue(void* nodep) {
-
-    CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
-    Node* curr = q->head;
+    LinkedList* ll = (LinkedList*)((unsigned long*)nodep)[0];
+    Node* curr = ll->head;
     return curr->node;
 }
 
@@ -81,32 +74,29 @@ static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t
 }
 
 void* findNode(void* nodep, unsigned long* key, struct cbtree_head *head, int arr_len) {
-    //CircularQueue* q = (CircularQueue*)*nodep;
-    CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
-    Node *curr = q->head;
-    Node *first = curr;
+    LinkedList* ll = (LinkedList*)((unsigned long*)nodep)[0];
+    Node *curr = ll->head;
     
     int i;
-    if(curr->node != NULL){
-        for(i = 0; i < 4;i++){
-		if(curr->node[2] == 1){
-			mempool_free(curr->node, head->mempool);
-		}
-        else if(cachelongcmp(key, curr->key,arr_len)){
-            return curr->node;
+    for(i = 0; i < 4;i++){
+        if(curr->node != NULL){
+		    if(curr->node[arr_len + 2] == 1){
+		    }
+            else if(cachelongcmp(key, curr->key,arr_len)){
+                return curr->node;
+            }
         }
-        q->head = curr->next;
-        }
+        curr = curr->next;
+
     }
     //there is no target, move curr position to the next of start point and NULL return
-    curr = curr->next;
+    ll->head = ll->head->next;
     return NULL;
 }
 
-void freeQueue(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is the length of orignal node
-    //CircularQueue* q = (CircularQueue*)*nodep;
-    CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
-    Node *curr = q->head;
+void freeLinkedList(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is the length of orignal node
+    LinkedList* ll = (LinkedList*)((unsigned long*)nodep)[0];
+    Node *curr = ll->head;
     
     if (!curr) {
         return;
@@ -117,8 +107,9 @@ void freeQueue(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is
         Node *temp = curr;
         curr = curr->next;
 		if(curr != NULL){
-			if(curr->node[1] == 1 && curr->node[2] == 1){ //if this cache is last one witch save that node and node already deleted
-				mempool_free(curr->node, head->mempool);
+			if(curr->node[arr_len+1] <= 1 && curr->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
+				freeLinkedList(curr->node[arr_len],head,arr_len);
+                mempool_free(curr->node, head->mempool);
 			}
 			else{
 				curr->node[1] -= 1;
@@ -127,4 +118,5 @@ void freeQueue(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is
         kfree(temp->key);
         kfree(temp);
     } while (curr != first);
+    kfree(ll);
 }
