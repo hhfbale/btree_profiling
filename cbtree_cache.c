@@ -3,16 +3,16 @@
 void initQueue(void* nodep) {
     Node *curr, *previous = NULL;
     Node *first = NULL;
-    printk("%d", nodep);
+    // printk("%d", nodep);
     //CircularQueue* q = (CircularQueue*)nodep;
     CircularQueue* q = kmalloc(sizeof(CircularQueue), GFP_KERNEL);
     int i; 
     for (i = 0; i < 4; i++) {
         curr = kmalloc(sizeof(Node), GFP_KERNEL);
-        printk("\nnew cache node created %p\n",curr);
+        // printk("\nnew cache node created %p\n",curr);
 	//check malloc error
         if (!curr) {
-            printk(KERN_ERR "Memory allocation failed for node %d\n", i);
+            // printk(KERN_ERR "Memory allocation failed for node %d\n", i);
             curr = first;
             while (curr) {
                 Node *temp = curr->next;
@@ -39,18 +39,18 @@ void initQueue(void* nodep) {
     curr->next = first;
     q->head = first;
     ((unsigned long*)nodep)[0] = (unsigned long)q;
-    printk("strat cache node of queue : %p",q->head);
-    printk("strat cache node of queue : %p",((unsigned long*)nodep)[0]);
-    printk("*nodep %d", ((unsigned long*)nodep)[0] );
-    printk("q %d", q);
-    printk("q-head %d", q->head);
+    // printk("strat cache node of queue : %p",q->head);
+    // printk("strat cache node of queue : %p",((unsigned long*)nodep)[0]);
+    // printk("*nodep %d", ((unsigned long*)nodep)[0] );
+    // printk("q %d", q);
+    // printk("q-head %d", q->head);
 }
 
 void setcache(unsigned long* leaf_node,struct cbtree_head *head, unsigned long * call_node, unsigned long * key, int arr_len, int key_len) {
 	//CircularQueue* q = (CircularQueue*)*nodep;
     CircularQueue* call_node_queue = (CircularQueue*)((unsigned long*)call_node)[arr_len];
     //CircularQueue* q = (CircularQueue*)((unsigned long*)call_node_queue)[0];
-    printk("setcache get %p", leaf_node);
+    // printk("setcache get %p", leaf_node);
     //Node* curr = q->head;
     //printk("set cache call %d",curr->node);
     if(call_node_queue->head->node != NULL){
@@ -76,10 +76,10 @@ void setcache(unsigned long* leaf_node,struct cbtree_head *head, unsigned long *
     
 	call_node_queue->head->node = leaf_node;
 	//call_node_queue->head->node[1] += 1;
-    printk("node added to %p",call_node_queue->head->node);
+    // printk("node added to %p",call_node_queue->head->node);
     int i;
 	for(i = 0;i <key_len; i++ ){
-         printk(" curr->key %d' changed to %d key",call_node_queue->head->key[i],key[i]);
+        //  printk(" curr->key %d' changed to %d key",call_node_queue->head->key[i],key[i]);
 		call_node_queue->head->key[i] = key[i];
     }
     call_node_queue->head = call_node_queue->head->next;
@@ -116,26 +116,26 @@ static int cachelongcmp(const unsigned long *l1, const unsigned long *l2, size_t
 void* findNode(void* nodep, unsigned long* key, struct cbtree_head *head, int arr_len) {
     //CircularQueue* q = (CircularQueue*)*nodep;
     CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
-    printk("findNode %d", nodep);
+    // printk("findNode %d", nodep);
     Node *curr = q->head;
-    printk("find cache call curr %d",curr);
-    printk("find cache call curr->next %d",curr->next);
+    // printk("find cache call curr %d",curr);
+    // printk("find cache call curr->next %d",curr->next);
     
     int i;
     for(i = 0; i < 4;i++){
         if(curr->node != NULL){
-            printk("search cache queue %d elememt-----------------",i);
+            // printk("search cache queue %d elememt-----------------",i);
 		    if(curr->node[arr_len + 2] == 1){
 		    }
             else if(cachelongcmp(key, curr->key,arr_len)){
-                printk("else if called");
+                // printk("else if called");
                 return curr->node;
             }
             //curr = curr->next;
             //printk("find cache call curr->next %d",curr->next);
         }
         curr = curr->next;
-        printk("find cache call curr->next %d and value %d: ",curr->next, curr->key[0]);
+        // printk("find cache call curr->next %d and value %d: ",curr->next, curr->key[0]);
 
     }
     /*
@@ -160,7 +160,7 @@ void* findNode(void* nodep, unsigned long* key, struct cbtree_head *head, int ar
 void freeQueue(void* nodep,struct cbtree_head *head, int arr_len) { //arr_len is the length of orignal node
     //CircularQueue* q = (CircularQueue*)*nodep;
     CircularQueue* q = (CircularQueue*)((unsigned long*)nodep)[0];
-    printk("freequeue %d", nodep);
+    // printk("freequeue %d", nodep);
     Node *curr = q->head;
     
     if (!curr) {

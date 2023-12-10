@@ -83,9 +83,9 @@ EXPORT_SYMBOL_GPL(cbtree_geo128);
 
 void *cbtree_alloc(gfp_t gfp_mask, void *pool_data)
 {	
-	printk("%d",cbtree_cachep);
+	// printk("%d",cbtree_cachep);
 	return kmem_cache_alloc(cbtree_cachep, gfp_mask);	
-	printk("break");
+	// printk("break");
 }
 EXPORT_SYMBOL_GPL(cbtree_alloc);
 
@@ -99,18 +99,18 @@ static unsigned long *cbtree_node_alloc(struct cbtree_head *head, struct cbtree_
 {
 	unsigned long *node;
 	//printk("2-1-1");
-	printk("%d",cbtree_cachep);
+	// printk("%d",cbtree_cachep);
 	node = mempool_alloc(head->mempool, gfp);
 	//printk("2-1-2");
 	if (likely(node))
 		memset(node, 0, NODESIZE);
 	if (!node) {
-    	printk(KERN_ERR "mempool_alloc failed to allocate memory for node\n");
+    	// printk(KERN_ERR "mempool_alloc failed to allocate memory for node\n");
     	return node;
 	}
 	//printk("2-1-3");
 	initQueue(&node[geo->keylen * geo->no_pairs + geo->no_longs]);
-	printk("%d",node[geo->keylen * geo->no_pairs + geo->no_longs]);
+	// printk("%d",node[geo->keylen * geo->no_pairs + geo->no_longs]);
 	//printk("2-1-4");
 	return node;
 }
@@ -204,10 +204,10 @@ EXPORT_SYMBOL_GPL(cbtree_init_mempool);
 int cbtree_init(struct cbtree_head *head)
 {
 	__cbtree_init(head);
-	printk("init done");
+	// printk("init done");
 	head->mempool = mempool_create(0, cbtree_alloc, cbtree_free, NULL);
 	if (!head->mempool)
-		printk("NULL returnd");
+		// printk("NULL returnd");
 		return -ENOMEM;
 	return 0;
 }
@@ -265,51 +265,51 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	unsigned long *temp_n = NULL;
 
 	if (height == 0){
-		printk("end point 1");
+		// printk("end point 1");
 		return NULL;
 	}
 	
-	printk("now level %d finding key %d",height, key[0]);
+	// printk("now level %d finding key %d",height, key[0]);
 
 	///changed code to recersive funtion
 	int j;
 	if(height <= 1){
 		for (i = 0; i < geo->no_pairs; i++)
 			if (keycmp(geo, node, i, key) == 0){
-				printk("\n\n\n\n\nfind by using original search %d %d\n\n\n\n\n", key[0]);
-				printk("end point 2");
+				// printk("\n\n\n\n\nfind by using original search %d %d\n\n\n\n\n", key[0]);
+				// printk("end point 2");
 				return node;
 			}
-		printk("end point 3");
+		// printk("end point 3");
 		return NULL;
 	}
 
-	printk("node's key value before findNode %p pinter %d key----------", ((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head,\
+	// printk("node's key value before findNode %p pinter %d key----------", ((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head,\
 	((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head->key[0]);
 
 	temp_n = findNode(&node[geo->keylen * geo->no_pairs + geo->no_longs], key, head, geo->keylen * geo->no_pairs + geo->no_longs);
 	
 	if(temp_n != NULL){
-		printk("\n\n\n\n\n\nfind by using cache %d\n\n\n\n\n\n", key[0]);
-		printk("end point 4");
+		// printk("\n\n\n\n\n\nfind by using cache %d\n\n\n\n\n\n", key[0]);
+		// printk("end point 4");
 		return temp_n;
 	}
 	for (i = 0; i < geo->no_pairs; i++)
 		if (keycmp(geo, node, i, key) <= 0)
 			break;
-	printk("i = %d no_pairs %d",i,geo->no_pairs);
+	// printk("i = %d no_pairs %d",i,geo->no_pairs);
 	if (i == geo->no_pairs)
 		return NULL;
-	printk("end point 5");
+	// printk("end point 5");
 
 	temp_n = node;// to save this level node address
 
 	node = bval(geo, node, i);
-	printk("node = %d",node);
-	printk("node address %d",&node);
+	// printk("node = %d",node);
+	// printk("node address %d",&node);
 	if (!node){
 
-		printk("end point 6");
+		// printk("end point 6");
 		return NULL;
 	}
 		
@@ -324,12 +324,12 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 	}
 	*/
 	height -= 1;
-	printk("level change %d\n",height);
+	// printk("level change %d\n",height);
 	node = cbtree_lookup_node(head, node, geo, key, height);
-	printk("return to level %d key is %d-----------", height++, key[0]);
+	// printk("return to level %d key is %d-----------", height++, key[0]);
 	if(node != NULL){
 		setcache(node, head, temp_n, key, geo->keylen * geo->no_pairs + geo->no_longs, geo->keylen);
-		printk("node's key value %d", ((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head->key[0]);
+		// printk("node's key value %d", ((CircularQueue*)node[geo->keylen * geo->no_pairs + geo->no_longs])->head->key[0]);
 	}
 	/*
 	for ( ; height > 1; height--) {
@@ -349,7 +349,7 @@ static void *cbtree_lookup_node(struct cbtree_head *head, unsigned long * h_node
 			return NULL;
 	}
  	*/
-	printk("end point 7");
+	// printk("end point 7");
 	return node;
 }
 
@@ -363,9 +363,9 @@ void *cbtree_lookup(struct cbtree_head *head, struct cbtree_geo *geo,
 	node = cbtree_lookup_node(head, node, geo, key, head->height);
 	if (!node){
 		return NULL;
-		for (i = 0; i < geo->no_pairs; i++)
-			printk("returned value : %d",bval(geo, node, i));
-		printk("\n\n\n\n");
+		// for (i = 0; i < geo->no_pairs; i++)
+		// 	printk("returned value : %d",bval(geo, node, i));
+		// printk("\n\n\n\n");
 	}
 	else return node;
 		/*
@@ -573,7 +573,7 @@ retry:
 		unsigned long *new;
 
 		new = cbtree_node_alloc(head, geo, gfp);
-		printk("new node allock : %d",new);
+		// printk("new node allock : %d",new);
 		if (!new)
 			return -ENOMEM;
 		err = cbtree_insert_level(head, geo,
@@ -614,7 +614,7 @@ int cbtree_insert(struct cbtree_head *head, struct cbtree_geo *geo,
 		unsigned long *key, void *val, gfp_t gfp)
 {
 	BUG_ON(!val);
-	printk("1");
+	// printk("1");
 	return cbtree_insert_level(head, geo, key, val, 1, gfp);
 }
 EXPORT_SYMBOL_GPL(cbtree_insert);

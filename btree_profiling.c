@@ -6,6 +6,7 @@
 #include "cbtree_base.h"
 #include <linux/pid.h>
 #include <linux/random.h>
+#include <linux/btree.h>
 #include "calclock.h"
 
 
@@ -14,14 +15,14 @@ MODULE_AUTHOR("Herman Bale");
 MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastructure in the Linux source code");
 
 // Define the size of the tree
-#define TREE_SIZE 100
+#define TREE_SIZE 100000
 
+struct kmem_cache *btree_cachep;
 struct kmem_cache *cbtree_cachep;
 
 // Declare the B+ tree
-struct cbtree_head tree;
-
-struct kmem_cache *cbtree_cachep;
+struct btree_head btree;
+struct cbtree_head cbtree;
 
 // Initialize map that will keep track of keys in the btree
 unsigned long search_counts[TREE_SIZE] = {0};
@@ -29,18 +30,18 @@ unsigned long search_counts[TREE_SIZE] = {0};
 // Fetch tree geometry
 extern struct cbtree_geo cbtree_geo32;
 
-// Define profiling
-KTDEF(btree_lookup_iter);
-
 /**
  * @brief Initialized the btree
 */
 void create_tree(void){
-
-	cbtree_init(&tree);
+	btree_init(&btree);
+	cbtree_init(&cbtree);
 }
 
-KTDEF(cbtree_lookup_iter);
+KTDEF(btree_insert);
+KTDEF(btree_lookup);
+KTDEF(cbtree_insert);
+KTDEF(cbtree_lookup);
 
 /**
  * @brief help function to keep track of how many times each key in tree is searched
@@ -59,21 +60,36 @@ void update_search_count(unsigned long key){
  * @key key corresponding to data_element
 */
 void insert_element(unsigned long key){
-	unsigned long temp_key[1] = {key}; 
-	unsigned long *val;
-	val = kmalloc(sizeof(*val), GFP_KERNEL);
-	if (!val) {
+	unsigned long temp_key_b[1] = {key}; 
+	unsigned long temp_key_cb[1] = {key}; 
+	unsigned long *val_b;
+	unsigned long *val_cb;
+	ktime_t stopwatch_b[2];
+	ktime_t stopwatch_cb[2];
+
+	val_b = kmalloc(sizeof(*val_b), GFP_KERNEL);
+	if (!val_b) {
 		printk(KERN_ERR "error\n");
 	}
-	//unsigned long *val = (unsigned long *)kmalloc(sizeof(unsigned long), GFP_ATOMIC);
-	cbtree_insert(&tree, &cbtree_geo32, temp_key, val, GFP_KERNEL);
+	ktget(&stopwatch_b[0]);
+	btree_insert(&btree, &btree_geo32, temp_key_b, val_b, GFP_KERNEL);
+	ktget(&stopwatch_b[1]);
+	ktput(stopwatch_b, btree_insert);
+
+	val_cb = kmalloc(sizeof(*val_cb), GFP_KERNEL);
+	if (!val_cb) {
+		printk(KERN_ERR "error\n");
+	}
+	ktget(&stopwatch_cb[0]);
+	cbtree_insert(&cbtree, &cbtree_geo32, temp_key_cb, val_cb, GFP_KERNEL);
+	ktget(&stopwatch_cb[1]);
+	ktput(stopwatch_cb, cbtree_insert);
 }
 
 /**
  * @brief fill the btree with data
 */
 void fill_tree(void){
-
 	unsigned long i;
 	for (i = 1; i <= TREE_SIZE; i++){
 		insert_element(i);
@@ -87,15 +103,22 @@ void fill_tree(void){
  * @return data_element corresponding to key
 */
 struct data_element* find_element(unsigned long key){
+	unsigned long temp_key_b[1] = {key};
+	unsigned long temp_key_cb[1] = {key};
+	ktime_t stopwatch_b[2];
+	ktime_t stopwatch_cb[2];
 
-	printk("to search %d",key);
-	unsigned long temp_key[1] = {key};
-	ktime_t localclock[2];
-	ktget(&localclock[0]);
-	struct data_element *result = cbtree_lookup(&tree, &cbtree_geo32, temp_key);
-	ktget(&localclock[1]);
-	ktput(localclock, cbtree_lookup_iter);
-	return result;
+	ktget(&stopwatch_b[0]);
+	struct data_element *result_b = btree_lookup(&btree, &btree_geo32, temp_key_b);
+	ktget(&stopwatch_b[1]);
+	ktput(stopwatch_b, btree_lookup);
+	
+	ktget(&stopwatch_cb[0]);
+	struct data_element *result_cb = cbtree_lookup(&cbtree, &cbtree_geo32, temp_key_cb);
+	ktget(&stopwatch_cb[1]);
+	ktput(stopwatch_cb, cbtree_lookup);
+
+	return result_cb;
 }
 
 /**
@@ -106,96 +129,55 @@ void find_tree(void){
     unsigned long i;
     unsigned long key;
     
-    for (i = 1; i <= TREE_SIZE; i++){
+    for (i = 1; i <= TREE_SIZE*4; i++){
         // Adjust the probability of generating different keys as needed
-        if (i % 3 == 0){
-            //Generate a random key for 33% of the iterations
-			get_random_bytes(&key, sizeof(key));
-			key %= TREE_SIZE; // Ensure the key is within the range of your tree
         
-		} else{
-            // Use a sequential key for the remaining 66% of the iterations
-            key = i;
-        }
-
+		//////////////////////////////////////////////////////////
+		// get_random_bytes(&key, sizeof(key));	// Random
+		key = TREE_SIZE / 2;					// Constant
+		// key = i;								// Sequencial
+		//////////////////////////////////////////////////////////
+		key %= TREE_SIZE; // Ensure the key is within the range of your tree
+		if(i%100000 == 0) {
+			printk(key);
+		}
 		update_search_count(key);
-        find_element(key);	
+		find_element(key);
     }
+	printk("ddd");
 }
 
 static int __init bplus_module_init(void){
 
 	printk("Initializing bplus_module\n");
 
+	btree_cachep = kmem_cache_create("btree_node", NODESIZE, 0,
+			SLAB_HWCACHE_ALIGN, NULL);
 	cbtree_cachep = kmem_cache_create("cbtree_node", NODESIZE, 0,
 			SLAB_HWCACHE_ALIGN, NULL);
-	printk("%d",cbtree_cachep);
-	if(!cbtree_cachep)
+
+	if(!cbtree_cachep || !btree_cachep)
 		printk("fail");
 	
 	create_tree();
-	void * temp = kmem_cache_alloc(cbtree_cachep, GFP_ATOMIC);
-	//mempool_alloc(tree.mempool, GFP_ATOMIC);
-	//printk("%d",*(tree.mempool));
-	int i = 0;
+	fill_tree();
+	find_tree();
 	
-	for(i = 0;i < 100; i++){
-		insert_element(i);
-	}
-	/*
-	for(i = 0;i < 30; i++){
-		printk("loop %d",i);
-		find_element(i);
-	}
-	*/
-
-	int k = 0;
-	/*
-	for (i = 0; i < 1000; i++) {
-        unsigned int random_number;
-        get_random_bytes(&random_number, sizeof(random_number));
-        random_number = random_number % 100 + 1;  // 1에서 100 사이의 숫자로 변환
-
-        printk("\n\n\n\n\nloop %d, finding element: %d\n", i, random_number);
-        //find_element(random_number);
-		
-    }
-	*/
-	for(k = 0; k < 100;k++){
-		find_element(1);
-	}
-	/*
-	insert_element(1);
-	insert_element(2);
-	insert_element(3);
-	*/
-	// fill_tree();
 	return 0;
 }
 
 static void __exit bplus_module_exit(void){
-
+	kmem_cache_destroy(btree_cachep);
 	kmem_cache_destroy(cbtree_cachep);
 
+	ktprint(0, cbtree_insert);
+	ktprint(0, cbtree_lookup);
+	ktprint(0, btree_insert);
+	ktprint(0, btree_lookup);
+
+	btree_destroy(&btree);
+	cbtree_destroy(&cbtree);
 	printk("Exiting bplus_module\n");
-	
-	/*
-	find_element(1);
-	find_element(2);
-	find_element(3);
-	find_element(1);
-	find_element(2);
-	find_element(3);
-	*/
-	// unsigned long i;
-	// for (i = 0; i < TREE_SIZE; i++){
-	// 	if (search_counts[i]){
-    //     	printk("Search count for key %lu: %lu\n", i, search_counts[i]);
-	// 	}
-    // }
-	
-	// ktprint(2, cbtree_lookup_iter);
-	cbtree_destroy(&tree);
 }
 
 module_init(bplus_module_init);
