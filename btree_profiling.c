@@ -15,7 +15,7 @@ MODULE_AUTHOR("Herman Bale");
 MODULE_DESCRIPTION("A module to create a B+ tree with the included bplus datastructure in the Linux source code");
 
 // Define the size of the tree
-#define TREE_SIZE 100000
+#define TREE_SIZE 100000000
 
 struct kmem_cache *btree_cachep;
 struct kmem_cache *cbtree_cachep;
@@ -129,22 +129,24 @@ void find_tree(void){
     unsigned long i;
     unsigned long key;
     
-    for (i = 1; i <= TREE_SIZE*4; i++){
+	printk(KERN_CONT "Search Value Samples : ");
+    for (i = 1; i <= TREE_SIZE * 10; i++){
         // Adjust the probability of generating different keys as needed
         
 		//////////////////////////////////////////////////////////
-		// get_random_bytes(&key, sizeof(key));	// Random
-		key = TREE_SIZE / 2;					// Constant
+		get_random_bytes(&key, sizeof(key));	// Random
+		// key = TREE_SIZE / 2;					// Constant
 		// key = i;								// Sequencial
 		//////////////////////////////////////////////////////////
-		key %= TREE_SIZE; // Ensure the key is within the range of your tree
-		if(i%100000 == 0) {
-			printk(key);
-		}
+		key %= (TREE_SIZE + 1); // Ensure the key is within the range of your tree
 		update_search_count(key);
 		find_element(key);
+
+		// if(i % (TREE_SIZE / 5) == 0) {
+		// 	printk(KERN_CONT "%lu ", key);
+		// }
     }
-	printk("ddd");
+	printk(KERN_CONT "\n");
 }
 
 static int __init bplus_module_init(void){
