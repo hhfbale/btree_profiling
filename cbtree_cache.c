@@ -39,7 +39,7 @@ void setcache(unsigned long* leaf_node,struct cbtree_head *head, unsigned long *
     LinkedList* call_node_linkedlist = (LinkedList*)((unsigned long*)call_node)[arr_len];
     if(call_node_linkedlist->head->node != NULL){
         if(call_node_linkedlist->head->node[arr_len + 1] == 1 && call_node_linkedlist->head->node[arr_len + 2] == 1){ //if this cache is last one witch save that node and node already deleted
-            freelinkedlist(call_node_linkedlist->head->node,head,arr_len);
+            freeLinkedList(call_node_linkedlist->head->node,head,arr_len);
             //mempool_free(call_node_linkedlist->head->node, head->mempool);
 		}
         else{
