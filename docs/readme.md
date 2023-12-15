@@ -49,6 +49,6 @@ dmesg
 Chung-Ang University Linux System Application Term Project
 
 - [Herman Bale](https://github.com/hhfbale)
-- [Jung Jinwook]()
+- [Jung Jinwook](https://github.com/u-siop)
 - [Jaehyung Ahn](https://github.com/JayHarrisonAhn)
 - [Taehyun Bae](https://github.com/bs06136)
